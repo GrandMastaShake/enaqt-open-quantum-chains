@@ -1,7 +1,7 @@
 # Environment-Assisted Quantum Transport in Open Quantum Chains:
 # Validation, Scaling Laws, and Disorder Universality
 
-**Authors:** A. Harper¹, Kimi-Agent²
+**Authors:** A. Smith¹, Kimi-Agent²
 
 ¹ Ember Professional Research Division  
 ² AI Research Assistant

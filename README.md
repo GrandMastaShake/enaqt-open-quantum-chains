@@ -106,8 +106,8 @@ dataset — download from
 Preprint available on bioRxiv (link forthcoming).
 
 ```bibtex
-@article{harper2026enaqt,
-  author  = {Harper, Alexander},
+@article{smith2026enaqt,
+  author  = {Smith, Alexander},
   title   = {Environment-Assisted Quantum Transport in Open Quantum Chains:
              Validation, Scaling Laws, and Disorder Universality},
   year    = {2026},
