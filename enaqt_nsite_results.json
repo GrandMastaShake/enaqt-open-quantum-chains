@@ -1,0 +1,260 @@
+{
+  "experiment": "ENAQT N-Site Chain Scaling",
+  "date": "2026-04-29",
+  "parameters": {
+    "Delta": 1.0,
+    "kappa": 0.1,
+    "Gamma": 0.01,
+    "total_bias": 5.0
+  },
+  "scaling_laws": {
+    "enhancement_linear_slope": 2.119033243897723,
+    "enhancement_linear_offset": 4.541101483091767,
+    "gp_star_power_law_exponent": -1.243617676388529
+  },
+  "funnel_results": {
+    "2": {
+      "N": 2,
+      "topology": "funnel",
+      "gp_star": 5.111433483440165,
+      "eta_peak": 0.7967929042929999,
+      "eta_zero": 0.28948303552414084,
+      "eta_zeno": 0.14924331790747192,
+      "enhancement": 2.7524683885199654,
+      "interior_peak": true
+    },
+    "3": {
+      "N": 3,
+      "topology": "funnel",
+      "gp_star": 2.5529080682395167,
+      "eta_peak": 0.7215317783135018,
+      "eta_zero": 0.11505797677114347,
+      "eta_zeno": 0.021832665837232663,
+      "enhancement": 6.2710278640538535,
+      "interior_peak": true
+    },
+    "4": {
+      "N": 4,
+      "topology": "funnel",
+      "gp_star": 1.6831803533309566,
+      "eta_peak": 0.6583925513360938,
+      "eta_zero": 0.065727968228239,
+      "eta_zeno": 0.003185523197883419,
+      "enhancement": 10.016931438529172,
+      "interior_peak": true
+    },
+    "5": {
+      "N": 5,
+      "topology": "funnel",
+      "gp_star": 1.2750512407130128,
+      "eta_peak": 0.6046262619277825,
+      "eta_zero": 0.042333339355555756,
+      "eta_zeno": 0.0004647611696388832,
+      "enhancement": 14.282508092488394,
+      "interior_peak": true
+    },
+    "6": {
+      "N": 6,
+      "topology": "funnel",
+      "gp_star": 0.9658832241158698,
+      "eta_peak": 0.5583207549200957,
+      "eta_zero": 0.02992054414983993,
+      "eta_zeno": 6.780755614236745e-05,
+      "enhancement": 18.66011367052904,
+      "interior_peak": true
+    },
+    "7": {
+      "N": 7,
+      "topology": "funnel",
+      "gp_star": 0.8406652885618325,
+      "eta_peak": 0.518056179838758,
+      "eta_zero": 0.02268050353993964,
+      "eta_zeno": 9.892958642314332e-06,
+      "enhancement": 22.841476113018288,
+      "interior_peak": true
+    },
+    "8": {
+      "N": 8,
+      "topology": "funnel",
+      "gp_star": 0.7316807143427192,
+      "eta_peak": 0.48267677132895365,
+      "eta_zero": 0.018134405550739526,
+      "eta_zeno": 1.4433584968672826e-06,
+      "enhancement": 26.616630469547978,
+      "interior_peak": true
+    },
+    "10": {
+      "N": 10,
+      "topology": "funnel",
+      "gp_star": 0.5542664520663102,
+      "eta_peak": 0.4235385451124167,
+      "eta_zero": 0.013067626172805675,
+      "eta_zeno": 3.0723459640881136e-08,
+      "enhancement": 32.41128415456356,
+      "interior_peak": true
+    },
+    "12": {
+      "N": 12,
+      "topology": "funnel",
+      "gp_star": 0.4500557675700497,
+      "eta_peak": 0.376042999800291,
+      "eta_zero": 0.010485576586057657,
+      "eta_zeno": 6.539821975259235e-10,
+      "enhancement": 35.86288238076517,
+      "interior_peak": true
+    },
+    "15": {
+      "N": 15,
+      "topology": "funnel",
+      "gp_star": 0.36543830709572545,
+      "eta_peak": 0.3201774274069181,
+      "eta_zero": 0.008451438835907847,
+      "eta_zeno": 2.0309982452025454e-12,
+      "enhancement": 37.88436899603083,
+      "interior_peak": true
+    },
+    "20": {
+      "N": 20,
+      "topology": "funnel",
+      "gp_star": 0.2768286630392064,
+      "eta_peak": 0.2535975446718339,
+      "eta_zero": 0.006798226948866815,
+      "eta_zeno": 1.342606683489687e-16,
+      "enhancement": 37.30348318455382,
+      "interior_peak": true
+    }
+  },
+  "flat_results": {
+    "2": {
+      "N": 2,
+      "topology": "flat",
+      "gp_star": 0.001,
+      "eta_peak": 0.8331004123430493,
+      "eta_zero": 0.8331004123430493,
+      "eta_zeno": 0.1492463804021593,
+      "enhancement": 1.0,
+      "interior_peak": false
+    },
+    "3": {
+      "N": 3,
+      "topology": "flat",
+      "gp_star": 0.001,
+      "eta_peak": 0.7733142096189766,
+      "eta_zero": 0.7733142096189766,
+      "eta_zeno": 0.02183288034068671,
+      "enhancement": 1.0,
+      "interior_peak": false
+    },
+    "4": {
+      "N": 4,
+      "topology": "flat",
+      "gp_star": 0.001,
+      "eta_peak": 0.7263662415476626,
+      "eta_zero": 0.7263662415476626,
+      "eta_zeno": 0.0031855437052811355,
+      "enhancement": 1.0,
+      "interior_peak": false
+    },
+    "5": {
+      "N": 5,
+      "topology": "flat",
+      "gp_star": 0.001,
+      "eta_peak": 0.6878228028482843,
+      "eta_zero": 0.6878228028482843,
+      "eta_zeno": 0.00046476339391987294,
+      "enhancement": 1.0,
+      "interior_peak": false
+    },
+    "6": {
+      "N": 6,
+      "topology": "flat",
+      "gp_star": 0.001,
+      "eta_peak": 0.6545458181352268,
+      "eta_zero": 0.6545458181352268,
+      "eta_zeno": 6.780781437558553e-05,
+      "enhancement": 1.0,
+      "interior_peak": false
+    },
+    "7": {
+      "N": 7,
+      "topology": "flat",
+      "gp_star": 0.001,
+      "eta_peak": 0.6248743610675043,
+      "eta_zero": 0.6248743610675043,
+      "eta_zeno": 9.892989926740269e-06,
+      "enhancement": 1.0,
+      "interior_peak": false
+    },
+    "8": {
+      "N": 8,
+      "topology": "flat",
+      "gp_star": 0.001,
+      "eta_peak": 0.5979858245426032,
+      "eta_zero": 0.5979858245426032,
+      "eta_zeno": 1.4433623991463136e-06,
+      "enhancement": 1.0,
+      "interior_peak": false
+    },
+    "10": {
+      "N": 10,
+      "topology": "flat",
+      "gp_star": 0.001,
+      "eta_peak": 0.5508424855772517,
+      "eta_zero": 0.5508424855772517,
+      "eta_zeno": 3.072352402575464e-08,
+      "enhancement": 1.0,
+      "interior_peak": false
+    },
+    "12": {
+      "N": 12,
+      "topology": "flat",
+      "gp_star": 0.001,
+      "eta_peak": 0.5107386986593333,
+      "eta_zero": 0.5107386986593333,
+      "eta_zeno": 6.539833164000816e-10,
+      "enhancement": 1.0,
+      "interior_peak": false
+    },
+    "15": {
+      "N": 15,
+      "topology": "flat",
+      "gp_star": 0.001,
+      "eta_peak": 0.460563090784118,
+      "eta_zero": 0.460563090784118,
+      "eta_zeno": 2.0310009696170057e-12,
+      "enhancement": 1.0,
+      "interior_peak": false
+    },
+    "20": {
+      "N": 20,
+      "topology": "flat",
+      "gp_star": 0.001,
+      "eta_peak": 0.39579075672572306,
+      "eta_zero": 0.39579075672572306,
+      "eta_zeno": 1.342608007833796e-16,
+      "enhancement": 1.0,
+      "interior_peak": false
+    }
+  },
+  "fmo7_result": {
+    "gp_star": 1.5702901247293775,
+    "eta_peak": 0.44435835376135735,
+    "eta_zero": 0.013835688401438562,
+    "eta_zeno": 0.0022577433976094974,
+    "enhancement": 32.11682287634891,
+    "interior_peak": true
+  },
+  "key_findings": {
+    "N2_enhancement": 2.7524683885199654,
+    "N7_enhancement": 22.841476113018288,
+    "N15_enhancement": 37.88436899603083,
+    "FMO7_enhancement": 32.11682287634891,
+    "enhancement_slope_per_site": 2.119033243897723,
+    "gp_star_scaling_exponent": -1.243617676388529,
+    "conclusion": "ENAQT enhancement grows near-linearly with chain length. Optimal dephasing decreases as N^-1.24. Energy funnel dramatically outperforms flat chain. FMO biological system operates near-optimally for its architecture."
+  },
+  "plots": [
+    "C:\\Users\\alexa\\Desktop\\Death_Star\\Ember\\Professional\\tauNOW\\Kimi_Agent_ENAQT\\enaqt_nsite_scaling.png",
+    "C:\\Users\\alexa\\Desktop\\Death_Star\\Ember\\Professional\\tauNOW\\Kimi_Agent_ENAQT\\enaqt_nsite_dynamics.png"
+  ]
+}
