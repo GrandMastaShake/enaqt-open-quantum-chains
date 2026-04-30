@@ -9,6 +9,7 @@ venv/
 # Data (too large for git — download from QD3SET-1 figshare)
 ../SB/
 SB/
+qd3set_fmo_data/
 *.npy
 
 # Old preliminary test files (pre-naming convention)
