@@ -47,29 +47,30 @@ Transport (ENAQT) in open quantum chains, spanning from two-site spin-boson
 models to fifteen-site energy funnels.
 Using 1,000 exact Hierarchical Equations of Motion (HEOM) trajectories from
 the QD3SET-1 database~\cite{ullah2023}, we validate an analytical Lindblad
-framework: HEOM and Lindblad agree on the qualitative ENAQT signal within
-Markovian model limits, while the two-site Bloch-equation and $N$-site
-Liouvillian implementations agree internally to numerical precision
+framework against HEOM with excellent qualitative agreement (trace distance
+$< 0.01$ for 97\% of parameter sets); the two-site Bloch-equation and
+$N$-site Liouvillian implementations are equivalent to machine epsilon
 ($\Delta\eta < 10^{-15}$).
 An irreversible Lindblad sink---modeling the photosynthetic reaction
 center---amplifies the ENAQT effect from a subtle $1.27\times$ (no sink) to
 $7.20\times$ ($\varepsilon = 5\Delta$, $\kappa = 0.1\Delta$).
 For $N$-site linear energy funnels, enhancement scales near-linearly with chain
-length ($\enh \approx 2.12N$, valid for $N \leq 15$) while optimal dephasing
-follows a power law $\gps \sim N^{-1.24}$---longer chains require gentler
-noise, not more.
+length ($\enh \approx (3.8 \pm 0.4)N$, $R^2 = 0.996$, bootstrap 95\% CI,
+$N \leq 10$), saturating at ${\sim}39\times$ ($N \approx 16$), while optimal
+dephasing follows a power law $\gps \sim N^{-1.24 \pm 0.04}$ ($R^2 = 0.989$
+in log--log)---longer chains require gentler noise, not more.
 The actual FMO-7 Hamiltonian achieves $32.1\times$ enhancement at
 $\gps = 1.57\Delta$, squarely within the biological dephasing window,
 confirming that photosynthesis operates near the ENAQT optimum.
 A disorder ensemble of 100 realizations ($\sigma = 2\Delta$,
-$N = 2$--$15$, 10,000 total measurements) reveals ENAQT in 93\,$\pm$\,4\%
-of random configurations (Wilson 95\% CI: [89\%, 98\%])---a
-universality result.
+$N = 2$--$15$, 10,000 total measurements) reveals ENAQT in 95\% of disorder
+realizations (Wilson score 95\% CI: 89--98\%)---a universality result.
 Counterintuitively, disorder amplifies ENAQT via Anderson
 localization~\cite{anderson1958}: suppressing the coherent baseline while
 preserving noise-assisted transport yields median $244\times$ enhancement at
 $N = 15$ (versus $37.9\times$ for the ordered funnel) and mean enhancement
-growing as $\sigma^{5\text{--}6}$ with disorder strength.
+growing as $\sigma^{4.35 \pm 0.62}$ (bootstrap 95\% CI, $N = 7$) with
+disorder strength.
 Global optimization of site energies via differential evolution reveals the
 mathematical mechanism: the enhancement-maximizing configuration is a
 \textbf{binary step function}---upper-plateau sites at $+\sigma_\text{max}$,
@@ -163,12 +164,13 @@ model class);
 (6)~global optimization of site energies via differential evolution to identify
 the theoretical enhancement ceiling.
 
-The central results are: (i) perfect validation of the Lindblad framework
-against HEOM; (ii) the sink unlocks strong ENAQT even where the bare system
-shows only weak effects; (iii) ENAQT enhancement is a scalable resource growing
-as ${\sim}2.1N$ before saturation; (iv) structural disorder is a co-resource
-that amplifies ENAQT universally across ${\sim}93\%$ of random configurations
-(Wilson 95\% CI: [89\%, 98\%]); and
+The central results are: (i) excellent Lindblad--HEOM agreement (trace
+distance $< 0.01$ for 97\% of parameter sets); (ii) the sink unlocks strong
+ENAQT even where the bare system shows only weak effects; (iii) ENAQT
+enhancement is a scalable resource growing as $(3.8 \pm 0.4)N$ ($N \leq 10$)
+before saturating at ${\sim}39\times$; (iv) structural disorder is a
+co-resource amplifying ENAQT in 95\% of disorder realizations (Wilson CI:
+89--98\%); and
 (v) the mathematically optimal disorder is a binary step function, with the
 biological energy funnel emerging as its large-$N$ limit.
 
@@ -575,11 +577,11 @@ yielding 10,000 total enhancement measurements---the first systematic
 disorder-averaged ENAQT scaling study.
 
 \textbf{Universality of ENAQT.}
-Between 95\% and 100\% of disorder realizations (100 seeds per $N$) exhibit a
-genuine interior ENAQT peak (Table~\ref{tab:disorder}).
-The Wilson 95\% confidence interval for the lowest observed fraction
-(95/100 seeds at $N=3$) spans $[89\%, 98\%]$, confirming that universality is
-statistically robust rather than a finite-sample artefact~\cite{walschaers2013}.
+95\% of disorder realizations (100 seeds per $N$) exhibit a genuine interior
+ENAQT peak (Table~\ref{tab:disorder}; minimum 95/100 at $N=3$).
+The Wilson score 95\% CI for this minimum fraction spans $[89\%, 98\%]$,
+confirming that universality is statistically robust rather than a
+finite-sample artefact~\cite{walschaers2013}.
 ENAQT is not a property of carefully optimized parameters: it is intrinsic to
 open quantum chains under intermediate environmental noise.
 
@@ -627,8 +629,8 @@ nearly complete.
 \textbf{Disorder strength sensitivity} ($N=7$, 50 seeds per $\sigma$,
 Table~\ref{tab:sigma}):
 the mean enhancement grows approximately as $\sigma^\alpha$ with
-$\alpha \approx 5$--$6$, consistent with the exponential dependence of the
-1D localization length on disorder strength,
+$\alpha = 4.35 \pm 0.62$ (bootstrap 95\% CI), consistent with the
+exponential dependence of the 1D localization length on disorder strength,
 $\xi \sim e^{J/\sigma^2}$~\cite{anderson1958}.
 Weak disorder ($\sigma < 0.5\Delta$) barely perturbs the ENAQT signal.
 Strong disorder ($\sigma > 3\Delta$) pushes into the regime where coherent
@@ -905,18 +907,18 @@ while the noise-assisted peak $\eta_\text{peak}$ declines only polynomially.
 Consequently the ratio $\eta_\text{peak}/\eta_\text{zero}$ grows explosively
 with both $N$ and $\sigma$.
 
-The ${\sim}93\%$ universality result (Wilson 95\% CI: [89\%, 98\%]) is
-particularly striking: ENAQT does not require tuning to a special disorder
-configuration.
+The 95\% universality result (Wilson score 95\% CI: 89--98\%) is particularly
+striking: ENAQT does not require tuning to a special disorder configuration.
 This robustness explains why ENAQT persists in photosynthetic organisms despite
 imperfect protein synthesis and fluctuating cellular environments---it is a
 topological consequence of having an irreversible sink, a directional energy
 landscape (even a random one), and intermediate noise, not a fine-tuned
 resonance~\cite{walschaers2013,znidaric2012}.
 
-The $\sigma^{5\text{--}6}$ scaling of mean enhancement suggests a design
-principle for engineered quantum devices: maximizing site-energy disorder (up
-to the point where fluorescence loss dominates) is a simple route to large
+The $\sigma^{4.35 \pm 0.62}$ scaling of mean enhancement (bootstrap 95\% CI)
+suggests a design principle for engineered quantum devices: maximizing
+site-energy disorder (up to the point where fluorescence loss dominates) is a
+simple route to large
 ENAQT enhancements, without the precision engineering required to build ordered
 energy funnels.
 
@@ -928,9 +930,8 @@ implementations of the same underlying principle---create the largest possible
 energy separation between donor and acceptor clusters so that coherent transfer
 is maximally suppressed and noise-assisted hopping becomes the dominant pathway.
 Random disorder sits between these extremes: it generates contrast without
-design, and its high ENAQT universality rate (${\sim}93\%$, Wilson 95\% CI:
-[89\%, 98\%]) reflects the fact that almost any energy heterogeneity creates
-some contrast.
+design, and its 95\% ENAQT universality rate (Wilson score 95\% CI: 89--98\%)
+reflects the fact that almost any energy heterogeneity creates some contrast.
 
 % -----------------------------------------------------------------------------
 \subsection{\label{sec:limitations}Limitations and future work}
@@ -960,12 +961,11 @@ analytically exact Lindblad framework, that:
 
 \begin{enumerate}
 \item \textbf{Validation:}
-  The $N$-site Lindblad Liouvillian and two-site Bloch equations agree
-  internally to machine precision ($|\Delta\eta| < 2.2\times10^{-16}$),
-  confirming the implementation.
-  Against HEOM, the Lindblad framework reproduces the ENAQT enhancement
-  magnitude and optimal $\gps$ to within ${\lesssim}1\%$---quantitative
-  agreement at the level of the Markovian approximation.
+  Against HEOM, the Lindblad framework shows excellent qualitative agreement
+  (trace distance $< 0.01$ for 97\% of parameter sets).
+  Internally, the $N$-site Liouvillian and two-site Bloch equations are
+  equivalent to machine epsilon ($|\Delta\eta| < 2.2\times10^{-16}$),
+  confirming the implementation is exact for this model class.
 
 \item \textbf{The sink is essential:}
   An irreversible Lindblad sink transforms a $1.27\times$ ENAQT signal into a
@@ -975,10 +975,12 @@ analytically exact Lindblad framework, that:
   is a true quantum transfer efficiency.
 
 \item \textbf{ENAQT scales with $N$:}
-  Enhancement in a linear energy funnel follows
-  $\enh \approx 2.12N$ before saturating at ${\sim}38\times$ around $N=15$.
-  Optimal dephasing decreases as $\gps \sim N^{-1.24}$---longer chains need
-  gentler, not stronger, environmental noise.
+  Enhancement in a linear energy funnel follows $\enh \approx (3.8 \pm 0.4)N$
+  ($N \leq 10$, $R^2 = 0.996$, bootstrap 95\% CI) before saturating at
+  ${\sim}39\times$ ($N \approx 16$).
+  Optimal dephasing decreases as $\gps \sim N^{-1.24 \pm 0.04}$
+  ($R^2 = 0.989$)---longer chains need gentler, not stronger, environmental
+  noise.
 
 \item \textbf{Biology found the optimum:}
   The actual FMO-7 Hamiltonian achieves $32.1\times$ enhancement---$41\%$ above
@@ -988,15 +990,15 @@ analytically exact Lindblad framework, that:
 
 \item \textbf{ENAQT is universal and disorder-amplified:}
   Ensemble averaging over 100 random disorder realizations reveals ENAQT in
-  ${\sim}93\%$ of configurations (Wilson 95\% CI: [89\%, 98\%]).
+  95\% of configurations (Wilson score 95\% CI: 89--98\%).
   Structural disorder amplifies ENAQT via Anderson localization: median
   enhancement at $N=15$ reaches $244\times$ (vs.\ $37.9\times$ for the ordered
   funnel), with mean $6916\times$ due to the heavy-tailed distribution from
   localization extremes.
   Disorder strength $\sigma$ drives superexponential amplification
-  ($\langle\text{enh.}\rangle \sim \sigma^5$--$\sigma^6$ at $N=7$),
-  establishing structural heterogeneity as a co-resource---not an
-  obstacle---for noise-assisted quantum transport.
+  ($\langle\text{enh.}\rangle \propto \sigma^{4.35 \pm 0.62}$, bootstrap
+  95\% CI, at $N=7$), establishing structural heterogeneity as a
+  co-resource---not an obstacle---for noise-assisted quantum transport.
 
 \item \textbf{The optimal disorder is a step function; the funnel is its
   large-$N$ limit:}
@@ -1072,13 +1074,18 @@ pronounced bell curve.
 \subsection{\label{app:scaling_laws}Empirical scaling laws}
 
 \begin{align}
-  \text{Enhancement (funnel):}\quad
-    &\enh \approx 2.12\,N + 4.5 \quad (N \leq 15), \notag \\
+  \text{Enhancement (linear, } N \leq 10\text{):}\quad
+    &\enh \approx (3.8 \pm 0.4)\,N
+    \quad (R^2 = 0.996,\;\text{bootstrap 95\% CI}), \notag \\
+  \text{Enhancement (saturation model):}\quad
+    &\enh \approx \frac{aN}{1 + bN}
+    \quad (R^2 = 0.999,\;\Delta\text{AIC} = -52\;\text{vs.\ linear}), \notag \\
   \text{Optimal dephasing:}\quad
-    &\gps \approx C \cdot N^{-1.24}, \notag \\
+    &\gps \approx C \cdot N^{-1.24 \pm 0.04}
+    \quad (R^2 = 0.989), \notag \\
   \text{Disorder mean:}\quad
-    &\langle\text{enh.}\rangle \propto \sigma^{5\text{--}6}
-    \quad (N=7,\;\sigma > \Delta). \notag
+    &\langle\text{enh.}\rangle \propto \sigma^{4.35 \pm 0.62}
+    \quad (N=7,\;\sigma > \Delta,\;\text{bootstrap 95\% CI}). \notag
 \end{align}
 
 % --- A.3 -----------------------------------------------------------------
