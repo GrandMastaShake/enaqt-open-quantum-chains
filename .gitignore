@@ -2,9 +2,21 @@
 __pycache__/
 *.pyc
 *.pyo
+*.pyd
 .venv/
 venv/
 *.egg-info/
+dist/
+build/
+
+# Testing & coverage
+.pytest_cache/
+.coverage
+htmlcov/
+coverage.xml
+
+# Type checking
+.mypy_cache/
 
 # Data (too large for git — download from QD3SET-1 figshare)
 ../SB/
