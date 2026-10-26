@@ -13,7 +13,7 @@ WHAT IS HERE
 
 BEFORE YOU POST - CHECK THESE
   1. Author line: "A. Smith", affiliation "Ember Professional Research
-     Division", email grandmasta1024@gmail.com. Edit lines 34-36 of main.tex
+     Division", email grandmasta1024@gmail.com. Edit lines 36-38 of main.tex
      if any of this should change.
   2. v5 changes the paper's main message. The old claims that HEOM validates
      the model, that disorder amplifies transport, and that the funnel is the
