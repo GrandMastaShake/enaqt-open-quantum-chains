@@ -56,5 +56,4 @@ ABOUT bioRxiv
   arXiv, not both.
 
 AFTER POSTING
-  Merge PR #1 on GitHub so the repo matches the paper. CI only runs once
-  the GitHub billing lock on your account is cleared.
+  Merge PR #1 on GitHub so the repo matches the paper. CI has passed on it.
