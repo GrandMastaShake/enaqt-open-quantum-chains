@@ -18,7 +18,6 @@ Benchmarks tested:
 
 import numpy as np
 from numpy.testing import assert_allclose
-import pytest
 from scipy.integrate import solve_ivp
 
 # Physical constants
@@ -31,8 +30,8 @@ GAMMA_F = 0.01
 #  Exact analytical formulas (derived via SymPy from the Lindblad master eq.)
 # ──────────────────────────────────────────────────────────────────────────────
 
-def _eta_2site_exact(epsilon: float, delta: float, kappa: float,
-                     gamma: float) -> float:
+
+def _eta_2site_exact(epsilon: float, delta: float, kappa: float, gamma: float) -> float:
     """Exact steady-state yield for the 2-site Lindblad system.
 
     Hamiltonian: H = [[epsilon/2, delta/2], [delta/2, -epsilon/2]]
@@ -46,9 +45,9 @@ def _eta_2site_exact(epsilon: float, delta: float, kappa: float,
     # SymPy-derived closed form
     num = delta**2 * kappa * (2 * gamma + kappa)
     denom = (
-        delta**2 * (2 * gamma + kappa)**2
+        delta**2 * (2 * gamma + kappa) ** 2
         + 4 * epsilon**2 * gamma * (gamma + kappa)
-        + gamma * (gamma + kappa) * (2 * gamma + kappa)**2
+        + gamma * (gamma + kappa) * (2 * gamma + kappa) ** 2
     )
     return float(num / denom)
 
@@ -80,8 +79,7 @@ class TestAnalytical2Site:
         from enaqt.core import hamiltonian_2site, liouvillian
 
         H = hamiltonian_2site(epsilon=0.0, delta=DELTA)
-        L = liouvillian(H, dephasing_rate=0.0, sink_rate=KAPPA,
-                        fluo_rate=GAMMA_F)
+        L = liouvillian(H, dephasing_rate=0.0, sink_rate=KAPPA, fluo_rate=GAMMA_F)
 
         n = H.shape[0]
         rho0_vec = np.zeros(n * n, dtype=complex)
@@ -94,9 +92,13 @@ class TestAnalytical2Site:
             epsilon=0.0, delta=DELTA, kappa=KAPPA, gamma=GAMMA_F
         )
 
-        assert_allclose(eta_numerical, eta_analytical, rtol=1e-8,
-                        err_msg=f"Resonant yield mismatch: num={eta_numerical}, "
-                                f"anal={eta_analytical}")
+        assert_allclose(
+            eta_numerical,
+            eta_analytical,
+            rtol=1e-8,
+            err_msg=f"Resonant yield mismatch: num={eta_numerical}, "
+            f"anal={eta_analytical}",
+        )
 
     def test_analytical_2site_detuned_no_dephasing(self):
         """Exact result for epsilon=1, gamma_phi=0 (detuned, no dephasing).
@@ -112,8 +114,7 @@ class TestAnalytical2Site:
 
         eps = 1.0
         H = hamiltonian_2site(epsilon=eps, delta=DELTA)
-        L = liouvillian(H, dephasing_rate=0.0, sink_rate=KAPPA,
-                        fluo_rate=GAMMA_F)
+        L = liouvillian(H, dephasing_rate=0.0, sink_rate=KAPPA, fluo_rate=GAMMA_F)
 
         n = H.shape[0]
         rho0_vec = np.zeros(n * n, dtype=complex)
@@ -126,9 +127,13 @@ class TestAnalytical2Site:
             epsilon=eps, delta=DELTA, kappa=KAPPA, gamma=GAMMA_F
         )
 
-        assert_allclose(eta_numerical, eta_analytical, rtol=1e-8,
-                        err_msg=f"Detuned yield mismatch: num={eta_numerical}, "
-                                f"anal={eta_analytical}")
+        assert_allclose(
+            eta_numerical,
+            eta_analytical,
+            rtol=1e-8,
+            err_msg=f"Detuned yield mismatch: num={eta_numerical}, "
+            f"anal={eta_analytical}",
+        )
 
 
 class TestAnalyticalZeno:
@@ -152,8 +157,7 @@ class TestAnalyticalZeno:
         gamma_f = 0.01  # Non-zero fluorescence needed for yield < 1
 
         # Large dephasing (gamma_phi >> Delta)
-        L = liouvillian(H, dephasing_rate=5000.0, sink_rate=KAPPA,
-                        fluo_rate=gamma_f)
+        L = liouvillian(H, dephasing_rate=5000.0, sink_rate=KAPPA, fluo_rate=gamma_f)
         eta = analytical_yield(L, KAPPA, n)
 
         assert eta < 0.01, (
@@ -177,8 +181,7 @@ class TestAnalyticalZeno:
         gammas = np.logspace(1, 3, 20)  # 10 to 1000
         etas = []
         for gp in gammas:
-            L = liouvillian(H, dephasing_rate=gp, sink_rate=KAPPA,
-                            fluo_rate=gamma_f)
+            L = liouvillian(H, dephasing_rate=gp, sink_rate=KAPPA, fluo_rate=gamma_f)
             etas.append(analytical_yield(L, KAPPA, n))
 
         # Check monotonic decrease in Zeno regime
@@ -199,15 +202,16 @@ class TestAnalyticalFlatChain:
         hamiltonian_2site uses Delta/2. So a 2-site flat chain has
         twice the coupling of the standard 2-site Hamiltonian.
         """
-        from enaqt.core import hamiltonian_flat, hamiltonian_2site
+        from enaqt.core import hamiltonian_flat
 
         H_flat = hamiltonian_flat(n=2, coupling=DELTA)
 
         # Expected: [[0, Delta], [Delta, 0]]
         H_expected = np.array([[0.0, DELTA], [DELTA, 0.0]])
 
-        assert_allclose(H_flat, H_expected, rtol=1e-10,
-                        err_msg="Flat 2-site Hamiltonian incorrect")
+        assert_allclose(
+            H_flat, H_expected, rtol=1e-10, err_msg="Flat 2-site Hamiltonian incorrect"
+        )
 
     def test_analytical_flat_chain_longer(self):
         """N-site flat chain: nearest-neighbor coupling = Delta, no bias."""
@@ -248,8 +252,7 @@ class TestAnalyticalMonotonicity:
         gammas = np.logspace(0, 3, 50)
         etas = []
         for gp in gammas:
-            L = liouvillian(H, dephasing_rate=gp, sink_rate=KAPPA,
-                            fluo_rate=gamma_f)
+            L = liouvillian(H, dephasing_rate=gp, sink_rate=KAPPA, fluo_rate=gamma_f)
             etas.append(analytical_yield(L, KAPPA, n))
 
         # Find the peak index
@@ -277,8 +280,7 @@ class TestAnalyticalVsNumerical:
         we must integrate both real and imaginary parts of the
         column-stacked density vector.
         """
-        from enaqt.core import (hamiltonian_2site, liouvillian,
-                                 analytical_yield)
+        from enaqt.core import hamiltonian_2site, liouvillian, analytical_yield
 
         H = hamiltonian_2site(epsilon=1.0, delta=DELTA)
         n = H.shape[0]
@@ -287,8 +289,7 @@ class TestAnalyticalVsNumerical:
         gamma = GAMMA_F
 
         # Analytical yield
-        L = liouvillian(H, dephasing_rate=gp, sink_rate=kappa,
-                        fluo_rate=gamma)
+        L = liouvillian(H, dephasing_rate=gp, sink_rate=kappa, fluo_rate=gamma)
         eta_analytical = analytical_yield(L, kappa, n)
 
         # Numerical: solve_ivp to long time and integrate.
@@ -300,16 +301,15 @@ class TestAnalyticalVsNumerical:
 
         # Build real-block Liouvillian for complex ODE:
         #   d/dt [Re(rho); Im(rho)] = [[Re(L), -Im(L)], [Im(L), Re(L)]] @ [Re(rho); Im(rho)]
-        L_real = np.block([[L.real, -L.imag],
-                           [L.imag, L.real]])
+        L_real = np.block([[L.real, -L.imag], [L.imag, L.real]])
         y0 = np.concatenate([rho0_vec.real, rho0_vec.imag])
 
         def rhs(t, y):
             return L_real @ y
 
-        sol = solve_ivp(rhs, [0, t_max], y0,
-                        method='RK45', rtol=1e-9, atol=1e-11,
-                        dense_output=True)
+        sol = solve_ivp(
+            rhs, [0, t_max], y0, method="RK45", rtol=1e-9, atol=1e-11, dense_output=True
+        )
 
         # Integrate sink population (real part of rho_NN)
         sink_idx = (n - 1) + (n - 1) * n
@@ -317,9 +317,13 @@ class TestAnalyticalVsNumerical:
         times = sol.t
         eta_numerical = kappa * np.trapezoid(sink_pop, times)
 
-        assert_allclose(eta_analytical, eta_numerical, rtol=1e-2,
-                        err_msg=f"Analytical vs numerical mismatch: "
-                                f"anal={eta_analytical}, num={eta_numerical}")
+        assert_allclose(
+            eta_analytical,
+            eta_numerical,
+            rtol=1e-2,
+            err_msg=f"Analytical vs numerical mismatch: "
+            f"anal={eta_analytical}, num={eta_numerical}",
+        )
 
     def test_analytical_enhancement_vs_coherent(self):
         """Enhancement ratio: eta_peak / eta_zero > 1 (ENAQT exists).
@@ -329,17 +333,20 @@ class TestAnalyticalVsNumerical:
         transport. We use a non-zero fluorescence rate so the yield is
         < 1 and dephasing can genuinely help.
         """
-        from enaqt.core import (hamiltonian_2site, liouvillian,
-                                 analytical_yield, liouvillian_parts,
-                                 optimal_dephasing)
+        from enaqt.core import (
+            hamiltonian_2site,
+            liouvillian,
+            analytical_yield,
+            liouvillian_parts,
+            optimal_dephasing,
+        )
 
         H = hamiltonian_2site(epsilon=1.0, delta=DELTA)
         n = H.shape[0]
         gamma_f = 0.01  # Non-zero fluorescence needed for enhancement > 1
 
         # Yield with no dephasing (coherent)
-        L0 = liouvillian(H, dephasing_rate=0.0, sink_rate=KAPPA,
-                         fluo_rate=gamma_f)
+        L0 = liouvillian(H, dephasing_rate=0.0, sink_rate=KAPPA, fluo_rate=gamma_f)
         eta_zero = analytical_yield(L0, KAPPA, n)
 
         # Find optimal dephasing via sweep

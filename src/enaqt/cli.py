@@ -23,7 +23,7 @@ import os
 import sys
 import traceback
 from pathlib import Path
-from typing import Callable, Sequence, Tuple
+from typing import Any, Callable, Sequence, Tuple
 
 # ---------------------------------------------------------------------------
 # Logging
@@ -75,6 +75,7 @@ def get_out_dir(cli_value: str | None = None) -> Path:
 # Input validation helpers
 # ---------------------------------------------------------------------------
 
+
 def _validate_positive_int(value: str, name: str) -> int:
     """Validate that *value* is a positive integer."""
     try:
@@ -91,7 +92,9 @@ def _validate_bounds_min(value: str) -> float:
     try:
         fvalue = float(value)
     except ValueError:
-        raise argparse.ArgumentTypeError(f"--bounds-min must be a number, got {value!r}")
+        raise argparse.ArgumentTypeError(
+            f"--bounds-min must be a number, got {value!r}"
+        )
     return fvalue
 
 
@@ -100,7 +103,9 @@ def _validate_bounds_max(value: str, min_val: float) -> float:
     try:
         fvalue = float(value)
     except ValueError:
-        raise argparse.ArgumentTypeError(f"--bounds-max must be a number, got {value!r}")
+        raise argparse.ArgumentTypeError(
+            f"--bounds-max must be a number, got {value!r}"
+        )
     if fvalue <= min_val:
         raise argparse.ArgumentTypeError(
             f"--bounds-max ({fvalue}) must be greater than --bounds-min ({min_val})"
@@ -187,6 +192,7 @@ def _require_module(func_name: str, func: Callable | None) -> Callable:
 # ---------------------------------------------------------------------------
 # Argument parser
 # ---------------------------------------------------------------------------
+
 
 def _build_parser() -> argparse.ArgumentParser:
     """Build and return the top-level argument parser with subcommands."""
@@ -299,9 +305,7 @@ def _build_parser() -> argparse.ArgumentParser:
         "--n-jobs",
         type=_validate_n_jobs,
         default=-1,
-        help=(
-            "Number of parallel jobs (-1 = all cores, default: -1)"
-        ),
+        help=("Number of parallel jobs (-1 = all cores, default: -1)"),
     )
 
     # -- optimize --------------------------------------------------------------
@@ -397,6 +401,7 @@ def _build_parser() -> argparse.ArgumentParser:
 # ---------------------------------------------------------------------------
 # Subcommand handlers
 # ---------------------------------------------------------------------------
+
 
 def _handle_validate(args: argparse.Namespace) -> int:
     """Handle the ``validate`` subcommand."""
@@ -572,6 +577,19 @@ def _handle_all(args: argparse.Namespace) -> int:
 # Summary printers
 # ---------------------------------------------------------------------------
 
+
+def _fmt(value: Any, spec: str) -> str:
+    """Format *value* with *spec* if it is a real number, else return 'N/A'.
+
+    The analysis functions may omit a key or store ``None``; formatting the
+    'N/A' placeholder with a numeric spec such as ``.3f`` would raise
+    ``ValueError`` after the (possibly long) computation had finished.
+    """
+    if isinstance(value, bool) or not isinstance(value, (int, float)):
+        return "N/A"
+    return format(value, spec)
+
+
 def _print_validate_summary(result: dict | None) -> None:
     """Print human-readable summary for validation results."""
     if result is None:
@@ -579,74 +597,90 @@ def _print_validate_summary(result: dict | None) -> None:
         return
     sym = result.get("symmetric_case", {})
     asym = result.get("asymmetric_case", {})
+    n_traj = result.get("dataset", {}).get("total_trajectories", "N/A")
     print("\n  --- Validation Results ---")
-    print(f"  Trajectories analyzed: {result.get('total_trajectories', 'N/A')}")
-    print(f"  Symmetric  (ε=0):  detected={sym.get('enaqt_detected', False)}, "
-          f"peak η={sym.get('peak_eta', 'N/A'):.4f}, "
-          f"enhancement={sym.get('enhancement', 'N/A'):.2f}x")
-    print(f"  Asymmetric (ε=1):  detected={asym.get('enaqt_detected', False)}, "
-          f"peak η={asym.get('peak_eta', 'N/A'):.4f}, "
-          f"enhancement={asym.get('enhancement', 'N/A'):.2f}x")
+    print(f"  Trajectories analyzed: {n_traj}")
+    for name, case in (("Symmetric  (eps=0)", sym), ("Asymmetric (eps=1)", asym)):
+        print(
+            f"  {name}:  detected={case.get('enaqt_detected', False)}, "
+            f"peak eta={_fmt(case.get('peak_eta'), '.4f')}, "
+            f"enhancement={_fmt(case.get('enhancement'), '.2f')}x"
+        )
 
 
 def _print_scaling_summary(result: dict | None) -> None:
-    """Print human-readable summary for scaling results."""
+    """Print human-readable summary for scaling results (see nsite.run_scaling)."""
     if result is None:
         print("  No scaling results.")
         return
-    scaling = result.get("scaling_laws", {})
+    fit = result.get("fit", {})
+    lin = fit.get("linear_params", {})
     print("\n  --- Scaling Results ---")
-    print(f"  Enhancement slope  : {scaling.get('enhancement_linear_slope', 'N/A'):.3f}")
-    print(f"  gp* power-law exp  : {scaling.get('gp_star_power_law_exponent', 'N/A'):.3f}")
+    print(f"  Enhancement slope  : {_fmt(lin.get('a'), '.3f')} per site (linear)")
+    print(f"  Linear R^2         : {_fmt(fit.get('linear_r2'), '.4f')}")
+    print(f"  Preferred model    : {fit.get('preferred_model', 'N/A')}")
     funnel = result.get("funnel_results", {})
     for N in sorted(funnel.keys(), key=lambda x: int(x)):
         r = funnel[N]
-        print(f"  N={N:>2}: enhancement={r.get('enhancement', 'N/A'):.1f}x, "
-              f"gp*={r.get('gp_star', 'N/A'):.3f}")
+        print(
+            f"  N={N:>2}: enhancement={_fmt(r.get('enhancement'), '.1f')}x, "
+            f"gp*={_fmt(r.get('gp_star'), '.3f')}"
+        )
 
 
 def _print_disorder_summary(result: dict | None) -> None:
-    """Print human-readable summary for disorder ensemble results."""
+    """Print human-readable summary for disorder results (see run_ensemble)."""
     if result is None:
         print("  No disorder results.")
         return
+    summary = result.get("summary", {})
+    rs = result.get("robust_stats", {})
+    wilson = result.get("wilson_ci", {})
     print("\n  --- Disorder Ensemble Results ---")
-    print(f"  N                 : {result.get('N', 'N/A')}")
-    print(f"  Seeds             : {result.get('n_seeds', 'N/A')}")
-    print(f"  Mean enhancement  : {result.get('ensemble_enhancement_mean', 'N/A'):.1f}x")
-    print(f"  Median enhancement: {result.get('ensemble_enhancement_med', 'N/A'):.1f}x")
-    print(f"  Std enhancement   : {result.get('ensemble_enhancement_std', 'N/A'):.1f}x")
-    print(f"  Interior peak frac: {result.get('frac_interior_peak', 'N/A')}")
+    print(f"  N                 : {summary.get('n', 'N/A')}")
+    print(f"  Seeds             : {summary.get('n_seeds', 'N/A')}")
+    print(f"  Mean enhancement  : {_fmt(rs.get('enhancement_mean'), '.1f')}x")
+    print(f"  Median enhancement: {_fmt(rs.get('enhancement_median'), '.1f')}x")
+    print(f"  Std enhancement   : {_fmt(rs.get('enhancement_std'), '.1f')}x")
+    print(f"  Interior peak frac: {_fmt(wilson.get('fraction'), '.3f')}")
 
 
 def _print_optimize_summary(result: dict | None) -> None:
-    """Print human-readable summary for optimization results."""
+    """Print human-readable summary for optimization (see run_optimization)."""
     if result is None:
         print("  No optimization results.")
         return
+    best = result.get("optimal", {})
     print("\n  --- Optimization Results ---")
-    for N, r in sorted(result.items(), key=lambda kv: int(kv[0]) if str(kv[0]).isdigit() else 0):
+    print(f"  N                   : {result.get('n', 'N/A')}")
+    print(f"  Best enhancement    : {_fmt(best.get('ratio'), '.1f')}x")
+    print(f"  Best absolute yield : {_fmt(best.get('yield'), '.4f')}")
+    print(f"  gp* at optimum      : {_fmt(best.get('gp_star'), '.3f')}")
+    for width, r in result.get("by_bound_width", {}).items():
         if isinstance(r, dict):
-            print(f"  N={N:>2}: optimal={r.get('optimal_enhancement', 'N/A'):.1f}x, "
-                  f"funnel={r.get('funnel_enhancement', 'N/A'):.1f}x, "
-                  f"gain_vs_funnel={r.get('gain_vs_funnel', 'N/A'):.1f}x")
+            print(
+                f"  bounds +/-{width}: "
+                f"enhancement={_fmt(r.get('enhancement_ratio'), '.1f')}x, "
+                f"yield={_fmt(r.get('absolute_yield'), '.4f')}"
+            )
 
 
 def _print_fmo_summary(result: dict | None) -> None:
-    """Print human-readable summary for FMO benchmark results."""
+    """Print human-readable summary for FMO results (see run_fmo_benchmark)."""
     if result is None:
         print("  No FMO results.")
         return
-    fmo = result.get("fmo7_result", result)
+    fmo = result.get("fmo7", {})
     print("\n  --- FMO-7 Benchmark Results ---")
-    print(f"  Enhancement : {fmo.get('enhancement', fmo.get('FMO7_enhancement', 'N/A')):.1f}x")
-    print(f"  Peak η      : {fmo.get('eta_peak', 'N/A'):.4f}")
-    print(f"  Optimal gp* : {fmo.get('gp_star', 'N/A'):.3f}")
+    print(f"  Enhancement : {_fmt(fmo.get('enhancement'), '.1f')}x")
+    print(f"  Peak eta    : {_fmt(fmo.get('eta_peak'), '.4f')}")
+    print(f"  Optimal gp* : {_fmt(fmo.get('gp_star'), '.3f')}")
 
 
 # ---------------------------------------------------------------------------
 # Entry point
 # ---------------------------------------------------------------------------
+
 
 def main(argv: Sequence[str] | None = None) -> int:
     """Main CLI entry point.
@@ -680,7 +714,10 @@ def main(argv: Sequence[str] | None = None) -> int:
         "all": _handle_all,
     }
 
-    handler = handlers.get(args.command, lambda _: (parser.print_help(), 0)[1])
+    handler = handlers.get(args.command)
+    if handler is None:  # pragma: no cover - argparse rejects unknown commands
+        parser.print_help()
+        return 1
 
     try:
         return handler(args)

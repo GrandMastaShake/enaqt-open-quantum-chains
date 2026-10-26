@@ -55,9 +55,15 @@ qutip = pytest.importorskip("qutip")
 # Helper
 # ─────────────────────────────────────────────────────────────────────────────
 
-def _ode_yield(H_np: np.ndarray, gamma_phi: float,
-               kappa: float, fluo_rate: float,
-               t_end: float = 600.0, n_pts: int = 6000) -> float:
+
+def _ode_yield(
+    H_np: np.ndarray,
+    gamma_phi: float,
+    kappa: float,
+    fluo_rate: float,
+    t_end: float = 600.0,
+    n_pts: int = 6000,
+) -> float:
     """Compute transfer yield via ODE integration of our Liouvillian.
 
     This is an *independent* reference: it solves the same differential
@@ -73,14 +79,22 @@ def _ode_yield(H_np: np.ndarray, gamma_phi: float,
     sink_idx = (n - 1) + (n - 1) * n  # rho_NN in column-stacked vector
 
     tlist = np.linspace(0.0, t_end, n_pts)
-    sol = solve_ivp(lambda t, y: L @ y, (0.0, t_end), rho0,
-                    t_eval=tlist, rtol=1e-9, atol=1e-11, method="RK45")
+    sol = solve_ivp(
+        lambda t, y: L @ y,
+        (0.0, t_end),
+        rho0,
+        t_eval=tlist,
+        rtol=1e-9,
+        atol=1e-11,
+        method="RK45",
+    )
     return float(kappa * np.trapezoid(sol.y[sink_idx].real, tlist))
 
 
 # ─────────────────────────────────────────────────────────────────────────────
 # Test Group 1 & 2 — Yield self-consistency
 # ─────────────────────────────────────────────────────────────────────────────
+
 
 class TestQuTiP2SiteResonant:
     """analytical_yield vs ODE integration for yield self-consistency.
@@ -105,18 +119,27 @@ class TestQuTiP2SiteResonant:
         # QuTiP sanity-check: eigenvalues must match numpy
         H_q = qutip.Qobj(H_np)
         assert H_q.isherm, "Hamiltonian must be Hermitian"
-        assert_allclose(np.sort(H_q.eigenenergies()),
-                        np.sort(np.linalg.eigvalsh(H_np)),
-                        rtol=1e-10,
-                        err_msg="QuTiP and numpy eigenvalues disagree")
+        assert_allclose(
+            np.sort(H_q.eigenenergies()),
+            np.sort(np.linalg.eigvalsh(H_np)),
+            rtol=1e-10,
+            err_msg="QuTiP and numpy eigenvalues disagree",
+        )
 
         eta_analytic = analytical_yield(
-            liouvillian(H_np, gamma_phi, KAPPA, GAMMA_F), KAPPA, n=2)
+            liouvillian(H_np, gamma_phi, KAPPA, GAMMA_F), KAPPA, n=2
+        )
         eta_ode = _ode_yield(H_np, gamma_phi, KAPPA, GAMMA_F)
 
-        assert_allclose(eta_analytic, eta_ode, rtol=5e-3,
-                        err_msg=(f"Analytical yield {eta_analytic:.6f} disagrees "
-                                 f"with ODE reference {eta_ode:.6f}"))
+        assert_allclose(
+            eta_analytic,
+            eta_ode,
+            rtol=5e-3,
+            err_msg=(
+                f"Analytical yield {eta_analytic:.6f} disagrees "
+                f"with ODE reference {eta_ode:.6f}"
+            ),
+        )
 
     def test_qutip_2site_detuned(self):
         """epsilon=1 (detuned): analytical_yield agrees with ODE for 4 gamma values.
@@ -133,15 +156,22 @@ class TestQuTiP2SiteResonant:
             eta_analytic = analytical_yield(L, KAPPA, n=2)
             eta_ode = _ode_yield(H_np, gamma_phi, KAPPA, GAMMA_F)
 
-            assert_allclose(eta_analytic, eta_ode, rtol=5e-3,
-                            err_msg=(f"gp={gamma_phi}: "
-                                     f"analytic={eta_analytic:.6f}, "
-                                     f"ode={eta_ode:.6f}"))
+            assert_allclose(
+                eta_analytic,
+                eta_ode,
+                rtol=5e-3,
+                err_msg=(
+                    f"gp={gamma_phi}: "
+                    f"analytic={eta_analytic:.6f}, "
+                    f"ode={eta_ode:.6f}"
+                ),
+            )
 
 
 # ─────────────────────────────────────────────────────────────────────────────
 # Test Group 3 & 4 — Dynamics cross-validation with QuTiP mesolve (kappa=0)
 # ─────────────────────────────────────────────────────────────────────────────
+
 
 class TestQuTiPDynamics:
     """Dynamics cross-validation using QuTiP mesolve with kappa=0.
@@ -190,13 +220,20 @@ class TestQuTiPDynamics:
         period_expected = 2.0 * np.pi / omega_expected
 
         from scipy.signal import find_peaks
+
         peaks, _ = find_peaks(P0, height=0.7, distance=50)
         if len(peaks) >= 2:
             period_measured = tlist[peaks[1]] - tlist[peaks[0]]
-            assert_allclose(period_measured, period_expected, rtol=5e-2,
-                            err_msg=(f"Rabi period mismatch: "
-                                     f"measured={period_measured:.3f}, "
-                                     f"expected={period_expected:.3f}"))
+            assert_allclose(
+                period_measured,
+                period_expected,
+                rtol=5e-2,
+                err_msg=(
+                    f"Rabi period mismatch: "
+                    f"measured={period_measured:.3f}, "
+                    f"expected={period_expected:.3f}"
+                ),
+            )
 
     def test_qutip_strong_dephasing(self):
         """Large gamma_phi suppresses oscillations (Zeno) — cross-validated with
@@ -218,13 +255,16 @@ class TestQuTiPDynamics:
         P0_proj = qutip.ket2dm(qutip.basis(2, 0))
 
         def _deph_c_ops(gamma: float) -> list:
-            return [np.sqrt(gamma) * qutip.basis(2, j) * qutip.basis(2, j).dag()
-                    for j in range(2)]
+            return [
+                np.sqrt(gamma) * qutip.basis(2, j) * qutip.basis(2, j).dag()
+                for j in range(2)
+            ]
 
         # (a) Weak dephasing: oscillations should survive
         gamma_low = 0.01
-        result_low = qutip.mesolve(H_q, rho0, tlist,
-                                   c_ops=_deph_c_ops(gamma_low), e_ops=[])
+        result_low = qutip.mesolve(
+            H_q, rho0, tlist, c_ops=_deph_c_ops(gamma_low), e_ops=[]
+        )
         P0_low = np.array([qutip.expect(P0_proj, s) for s in result_low.states])
         crossings_low = np.sum((P0_low[:-1] < 0.5) & (P0_low[1:] >= 0.5))
         assert crossings_low >= 1, (
@@ -234,10 +274,10 @@ class TestQuTiPDynamics:
 
         # (b) Strong dephasing: oscillations should be suppressed
         gamma_strong = 100.0
-        result_strong = qutip.mesolve(H_q, rho0, tlist,
-                                      c_ops=_deph_c_ops(gamma_strong), e_ops=[])
-        P0_strong = np.array([qutip.expect(P0_proj, s)
-                               for s in result_strong.states])
+        result_strong = qutip.mesolve(
+            H_q, rho0, tlist, c_ops=_deph_c_ops(gamma_strong), e_ops=[]
+        )
+        P0_strong = np.array([qutip.expect(P0_proj, s) for s in result_strong.states])
         crossings_strong = np.sum((P0_strong[:-1] < 0.5) & (P0_strong[1:] >= 0.5))
         assert crossings_strong < crossings_low, (
             f"Zeno suppression not observed: gamma={gamma_strong} gives "
@@ -246,10 +286,12 @@ class TestQuTiPDynamics:
 
         # (c) Analytical yield decreases at strong dephasing (detuned case)
         H_det = hamiltonian_2site(epsilon=1.0, delta=DELTA)
-        eta_low = analytical_yield(liouvillian(H_det, gamma_low, KAPPA, GAMMA_F),
-                                   KAPPA, n=2)
-        eta_strong = analytical_yield(liouvillian(H_det, gamma_strong, KAPPA, GAMMA_F),
-                                      KAPPA, n=2)
+        eta_low = analytical_yield(
+            liouvillian(H_det, gamma_low, KAPPA, GAMMA_F), KAPPA, n=2
+        )
+        eta_strong = analytical_yield(
+            liouvillian(H_det, gamma_strong, KAPPA, GAMMA_F), KAPPA, n=2
+        )
         assert eta_strong < eta_low, (
             f"Yield should be suppressed in Zeno limit: "
             f"eta(gp={gamma_low})={eta_low:.4f}, "
@@ -260,6 +302,7 @@ class TestQuTiPDynamics:
 # ─────────────────────────────────────────────────────────────────────────────
 # Test Group 5 — Trace conservation (unchanged from original)
 # ─────────────────────────────────────────────────────────────────────────────
+
 
 class TestQuTiPConservation:
     """Conservation law cross-validation with QuTiP."""
@@ -283,32 +326,41 @@ class TestQuTiPConservation:
         gamma_phi = 0.1
 
         # --- QuTiP evolution (no sink, no fluorescence) ---
-        deph_ops = [np.sqrt(gamma_phi) * qutip.basis(2, j) * qutip.basis(2, j).dag()
-                    for j in range(2)]
+        deph_ops = [
+            np.sqrt(gamma_phi) * qutip.basis(2, j) * qutip.basis(2, j).dag()
+            for j in range(2)
+        ]
         tlist = np.linspace(0, 10, 101)
         result = qutip.mesolve(H_q, rho0, tlist, c_ops=deph_ops)
 
-        traces_qutip = np.array([qutip.expect(qutip.qeye(2), s).real
-                                  for s in result.states])
+        traces_qutip = np.array(
+            [qutip.expect(qutip.qeye(2), s).real for s in result.states]
+        )
 
         # --- Our evolution (no sink, no fluorescence) ---
         L = liouvillian(H_np, gamma_phi, sink_rate=0.0, fluo_rate=0.0)
         n = H_np.shape[0]
 
         def rhs(t, y):
-            rho_vec = y[:n*n] + 1j * y[n*n:]
+            rho_vec = y[: n * n] + 1j * y[n * n :]
             drho = L @ rho_vec
             return [*drho.real, *drho.imag]
 
         y0 = np.zeros(2 * n * n)
         y0[0] = 1.0  # rho_11 = 1
-        sol = solve_ivp(rhs, [0, 10], y0, t_eval=tlist,
-                        rtol=1e-9, atol=1e-11)
+        sol = solve_ivp(rhs, [0, 10], y0, t_eval=tlist, rtol=1e-9, atol=1e-11)
 
-        traces_ours = np.array([
-            np.sum((sol.y[:n*n, i] + 1j * sol.y[n*n:, i])[::n+1]).real
-            for i in range(len(tlist))
-        ])
+        traces_ours = np.array(
+            [
+                np.sum((sol.y[: n * n, i] + 1j * sol.y[n * n :, i])[:: n + 1]).real
+                for i in range(len(tlist))
+            ]
+        )
 
-        assert_allclose(traces_ours, traces_qutip, rtol=1e-6, atol=1e-6,
-                        err_msg="Trace conservation mismatch between our code and QuTiP")
+        assert_allclose(
+            traces_ours,
+            traces_qutip,
+            rtol=1e-6,
+            atol=1e-6,
+            err_msg="Trace conservation mismatch between our code and QuTiP",
+        )

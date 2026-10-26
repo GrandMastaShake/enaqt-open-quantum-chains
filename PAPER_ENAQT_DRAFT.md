@@ -1,3 +1,5 @@
+> SUPERSEDED: this v3.0 draft is kept for the record only. The current manuscript is main.tex (v5, October 2026), which corrects several numbers and withdraws some claims made here.
+
 # Environment-Assisted Quantum Transport in Open Quantum Chains:
 # Validation, Scaling Laws, and Disorder Universality
 

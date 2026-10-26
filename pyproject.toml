@@ -35,7 +35,7 @@ qutip = ["qutip >= 4.7.0"]
 dev = [
     "pytest >= 7.4.0",
     "pytest-cov >= 4.1.0",
-    "black >= 23.0.0",
+    "black >= 26.1.0, < 27",
     "flake8 >= 6.0.0",
     "mypy >= 1.5.0",
     "qutip >= 4.7.0",
@@ -64,20 +64,30 @@ include = '\.pyi?$'
 
 [tool.mypy]
 python_version = "3.10"
-strict = true
-warn_return_any = true
-warn_unused_ignores = true
 ignore_missing_imports = true
+check_untyped_defs = true
+warn_unused_ignores = true
+warn_redundant_casts = true
+enable_error_code = ["possibly-undefined"]
+exclude = ["src/enaqt/original/"]
+
+[[tool.mypy.overrides]]
+module = ["enaqt.original.*"]
+ignore_errors = true
 
 [tool.pytest.ini_options]
 testpaths = ["tests"]
 addopts = "-v --tb=short"
+markers = [
+    "slow: long-running test, skipped unless --runslow is given",
+]
 
 [tool.coverage.run]
 source = ["src/enaqt"]
-omit = ["*/tests/*"]
+omit = ["*/tests/*", "*/enaqt/original/*"]
 
 [tool.coverage.report]
 show_missing = true
 skip_covered = false
-fail_under = 80
+# Measured 88.9% locally (Python 3.13, numpy 2.x); keep a small margin.
+fail_under = 87

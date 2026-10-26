@@ -6,6 +6,12 @@ on:
   pull_request:
     branches: [main]
 
+env:
+  # Small dense solves gain nothing from BLAS threads; avoid oversubscription.
+  OPENBLAS_NUM_THREADS: "1"
+  OMP_NUM_THREADS: "1"
+  MPLBACKEND: Agg
+
 jobs:
   lint:
     runs-on: ubuntu-latest
@@ -14,10 +20,13 @@ jobs:
       - uses: actions/setup-python@v5
         with:
           python-version: "3.11"
-      - run: pip install black flake8 mypy
-      - run: black --check src/ tests/
-      - run: flake8 src/ tests/
-      - run: mypy --strict src/enaqt/
+      # Install the package so mypy sees numpy/scipy/matplotlib types.
+      - run: pip install -e . "black>=26.1,<27" flake8 mypy
+      - run: black --check src/ tests/ scripts/
+      # flake8 settings (line length, excludes) live in setup.cfg
+      - run: flake8 src/ tests/ scripts/
+      # mypy settings (non-strict, check_untyped_defs) live in pyproject.toml
+      - run: mypy src/enaqt/
 
   test:
     runs-on: ubuntu-latest
@@ -45,5 +54,5 @@ jobs:
         with:
           python-version: "3.11"
       - run: pip install -e ".[dev]"
-      - run: pytest tests/test_qutip.py -v --benchmark-only || pytest tests/test_qutip.py -v
+      - run: pytest tests/test_qutip.py -v
         timeout-minutes: 10

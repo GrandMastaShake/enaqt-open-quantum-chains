@@ -24,10 +24,10 @@ from typing import Tuple
 import numpy as np
 from numpy.random import Generator
 
-
 # ──────────────────────────────────────────────────────────────────────────────
 #  Liouvillian superoperators
 # ──────────────────────────────────────────────────────────────────────────────
+
 
 def liouvillian(
     H: np.ndarray,
@@ -134,9 +134,7 @@ def liouvillian_parts(
     if sink_rate != 0.0:
         Pn = np.zeros((n, n), dtype=float)
         Pn[n - 1, n - 1] = 1.0
-        L_base += -sink_rate / 2.0 * (
-            np.kron(identity, Pn) + np.kron(Pn, identity)
-        )
+        L_base += -sink_rate / 2.0 * (np.kron(identity, Pn) + np.kron(Pn, identity))
 
     if fluo_rate != 0.0:
         L_base += -fluo_rate * np.eye(n * n, dtype=complex)
@@ -147,9 +145,7 @@ def liouvillian_parts(
         Pj = np.zeros((n, n), dtype=float)
         Pj[j, j] = 1.0
         L_deph += (
-            np.kron(Pj, Pj)
-            - 0.5 * np.kron(identity, Pj)
-            - 0.5 * np.kron(Pj, identity)
+            np.kron(Pj, Pj) - 0.5 * np.kron(identity, Pj) - 0.5 * np.kron(Pj, identity)
         )
 
     return L_base, L_deph
@@ -158,6 +154,7 @@ def liouvillian_parts(
 # ──────────────────────────────────────────────────────────────────────────────
 #  Hamiltonian constructors
 # ──────────────────────────────────────────────────────────────────────────────
+
 
 def hamiltonian_2site(epsilon: float, delta: float) -> np.ndarray:
     r"""2×2 spin-boson Hamiltonian.
@@ -176,8 +173,7 @@ def hamiltonian_2site(epsilon: float, delta: float) -> np.ndarray:
         ``(2, 2)`` real ndarray.
     """
     return np.array(
-        [[+epsilon / 2.0, delta / 2.0],
-         [+delta / 2.0, -epsilon / 2.0]],
+        [[+epsilon / 2.0, delta / 2.0], [+delta / 2.0, -epsilon / 2.0]],
         dtype=float,
     )
 
@@ -318,6 +314,7 @@ def hamiltonian_fmo7() -> np.ndarray:
 #  Yield and sweep utilities
 # ──────────────────────────────────────────────────────────────────────────────
 
+
 def analytical_yield(L: np.ndarray, sink_rate: float, n: int) -> float:
     """Compute the steady-state transfer yield ``η_∞``.
 
@@ -387,6 +384,7 @@ def optimal_dephasing(
 #  Visualization helpers
 # ──────────────────────────────────────────────────────────────────────────────
 
+
 def build_mesh(H: np.ndarray, n: int) -> Tuple[np.ndarray, np.ndarray]:
     """Build a 2-D mesh for ENAQT visualisations.
 
@@ -412,6 +410,7 @@ def build_mesh(H: np.ndarray, n: int) -> Tuple[np.ndarray, np.ndarray]:
 # ──────────────────────────────────────────────────────────────────────────────
 #  I/O utilities
 # ──────────────────────────────────────────────────────────────────────────────
+
 
 def get_out_dir() -> Path:
     """Resolve the output directory from CLI argument, env var, or default.
