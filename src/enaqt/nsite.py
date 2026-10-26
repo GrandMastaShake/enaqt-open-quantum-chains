@@ -25,20 +25,16 @@ References:
 
 from __future__ import annotations
 
-import json
 import warnings
 from pathlib import Path
-from typing import Tuple
+from typing import Any, Tuple
 
-import numpy as np
 import matplotlib
-
-matplotlib.use("Agg")
-import matplotlib.pyplot as plt
 import matplotlib.gridspec as gridspec
+import matplotlib.pyplot as plt
+import numpy as np
 from scipy.integrate import solve_ivp
 from scipy.optimize import curve_fit
-from scipy.stats import t as t_dist
 
 # ---------------------------------------------------------------------------
 # Imports from enaqt.core (merged separately)
@@ -46,7 +42,6 @@ from scipy.stats import t as t_dist
 from enaqt.core import (
     liouvillian_parts,
     analytical_yield,
-    hamiltonian_nsite,
     hamiltonian_funnel,
     hamiltonian_flat,
     hamiltonian_disordered,
@@ -55,6 +50,8 @@ from enaqt.core import (
     get_out_dir,
     save_json,
 )
+
+matplotlib.use("Agg")
 
 # ---------------------------------------------------------------------------
 # Default parameters
@@ -69,6 +66,7 @@ _DISORDER_SIGMA: float = 2.0
 # ============================================================================
 #  INTERNAL HELPERS
 # ============================================================================
+
 
 def _bootstrap_ci(
     x: np.ndarray,
@@ -132,10 +130,10 @@ def _durbin_watson(residuals: np.ndarray) -> float:
     DW > 2.5 → possible negative autocorrelation.
     """
     diff = np.diff(residuals)
-    ss_res = np.sum(residuals ** 2)
+    ss_res = np.sum(residuals**2)
     if ss_res == 0:
         return 2.0
-    return float(np.sum(diff ** 2) / ss_res)
+    return float(np.sum(diff**2) / ss_res)
 
 
 def _cooks_distance(
@@ -162,7 +160,9 @@ def _cooks_distance(
             except (RuntimeError, ValueError):
                 p_loo = p_opt
         y_hat_loo = fit_func(x, *p_loo)
-        cooks[i] = float(np.sum((y_hat_full - y_hat_loo) ** 2) / (len(p_opt) * mse_full))
+        cooks[i] = float(
+            np.sum((y_hat_full - y_hat_loo) ** 2) / (len(p_opt) * mse_full)
+        )
     return cooks
 
 
@@ -189,6 +189,7 @@ def _aic(n: int, rss: float, k: int) -> float:
 # ============================================================================
 #  fit_models
 # ============================================================================
+
 
 def fit_models(
     n_values: np.ndarray,
@@ -222,7 +223,9 @@ def fit_models(
     x_fine = np.linspace(x.min(), x.max(), 200)
 
     # ---------- Linear fit ----------
-    linear_func = lambda xv, a, b: a * xv + b
+    def linear_func(xv: Any, a: float, b: float) -> Any:
+        return a * xv + b
+
     p0_linear = [np.polyfit(x, y, 1)[0], np.polyfit(x, y, 1)[1]]
 
     p_linear, ci_l_lin, ci_u_lin = _bootstrap_ci(
@@ -236,7 +239,7 @@ def fit_models(
 
     # ---------- Saturation fit: E(N) = a * N^b * exp(-c * N) ----------
     def sat_func(xv, a, b, c):
-        return a * (xv ** b) * np.exp(-c * xv)
+        return a * (xv**b) * np.exp(-c * xv)
 
     # Initial guess: a ≈ max(y), b ≈ 1, c ≈ small
     p0_sat = [max(y.max(), 1.0), 1.0, 0.01]
@@ -248,7 +251,9 @@ def fit_models(
     try:
         with warnings.catch_warnings():
             warnings.simplefilter("ignore")
-            p_sat, _ = curve_fit(sat_func, x, y, p0=p0_sat, bounds=bounds_sat, maxfev=20000)
+            p_sat, _ = curve_fit(
+                sat_func, x, y, p0=p0_sat, bounds=bounds_sat, maxfev=20000
+            )
         _, ci_l_sat, ci_u_sat = _bootstrap_ci(
             x, y, sat_func, p0_sat, n_bootstrap=n_bootstrap
         )
@@ -273,7 +278,11 @@ def fit_models(
         "linear_durbin_watson": dw_linear,
         "linear_cooks_d": cooks_linear.tolist(),
         # Saturation
-        "sat_params": {"a": float(p_sat[0]), "b": float(p_sat[1]), "c": float(p_sat[2])},
+        "sat_params": {
+            "a": float(p_sat[0]),
+            "b": float(p_sat[1]),
+            "c": float(p_sat[2]),
+        },
         "sat_r2": r2_sat,
         "sat_ci_lower": ci_l_sat.tolist(),
         "sat_ci_upper": ci_u_sat.tolist(),
@@ -289,6 +298,7 @@ def fit_models(
 # ============================================================================
 #  time_trajectory
 # ============================================================================
+
 
 def time_trajectory(
     H: np.ndarray,
@@ -360,6 +370,7 @@ def time_trajectory(
 #  run_scaling
 # ============================================================================
 
+
 def run_scaling(
     n_max: int = 20,
     out_dir: Path | str | None = None,
@@ -394,20 +405,30 @@ def run_scaling(
     if not chain_sizes:
         raise ValueError(f"n_max={n_max} is too small; need at least n=2")
 
-    gp_arr = np.logspace(-3, 3, 200)
     results: dict = {"funnel": {}, "flat": {}, "disordered": {}}
 
-    print(f"\n[nsite] Computing yields for {len(chain_sizes)} chain lengths x 3 topologies...")
+    print(
+        f"\n[nsite] Computing yields for {len(chain_sizes)} chain lengths x 3 topologies..."
+    )
 
     for N in chain_sizes:
         for topology, H in [
-            ("funnel", hamiltonian_funnel(N, _DELTA)),
+            ("funnel", hamiltonian_funnel(N, _BIAS, _DELTA)),
             ("flat", hamiltonian_flat(N, _DELTA)),
-            ("disordered", hamiltonian_disordered(N, _DELTA, _DISORDER_SIGMA)),
+            # Anderson-disordered chain (zero mean, no funnel), seed 42 per N,
+            # matching disordered_hamiltonian() in enaqt_nsite_chain.py.
+            (
+                "disordered",
+                hamiltonian_disordered(
+                    N, 0.0, _DELTA, _DISORDER_SIGMA, np.random.default_rng(42)
+                ),
+            ),
         ]:
             gp, eta = optimal_dephasing(
                 *liouvillian_parts(H, _KAPPA, _GAMMA),
-                _KAPPA, N, n_points=200,
+                _KAPPA,
+                N,
+                n_points=200,
             )
             idx = int(np.argmax(eta))
             eta_peak = float(eta[idx])
@@ -446,14 +467,22 @@ def run_scaling(
     dw_lin = fit_results["linear_durbin_watson"]
     dw_sat = fit_results["sat_durbin_watson"]
     fit_results["linear_dw_interpretation"] = (
-        "positive autocorrelation" if dw_lin < 1.5 else
-        "negative autocorrelation" if dw_lin > 2.5 else
-        "no significant autocorrelation"
+        "positive autocorrelation"
+        if dw_lin < 1.5
+        else (
+            "negative autocorrelation"
+            if dw_lin > 2.5
+            else "no significant autocorrelation"
+        )
     )
     fit_results["sat_dw_interpretation"] = (
-        "positive autocorrelation" if dw_sat < 1.5 else
-        "negative autocorrelation" if dw_sat > 2.5 else
-        "no significant autocorrelation"
+        "positive autocorrelation"
+        if dw_sat < 1.5
+        else (
+            "negative autocorrelation"
+            if dw_sat > 2.5
+            else "no significant autocorrelation"
+        )
     )
 
     # ---- Plot ----
@@ -471,15 +500,23 @@ def run_scaling(
         },
         "fit": fit_results,
         "funnel_results": {
-            str(N): {k: v for k, v in results["funnel"][N].items() if k not in ("gp", "eta")}
+            str(N): {
+                k: v for k, v in results["funnel"][N].items() if k not in ("gp", "eta")
+            }
             for N in chain_sizes
         },
         "flat_results": {
-            str(N): {k: v for k, v in results["flat"][N].items() if k not in ("gp", "eta")}
+            str(N): {
+                k: v for k, v in results["flat"][N].items() if k not in ("gp", "eta")
+            }
             for N in chain_sizes
         },
         "disordered_results": {
-            str(N): {k: v for k, v in results["disordered"][N].items() if k not in ("gp", "eta")}
+            str(N): {
+                k: v
+                for k, v in results["disordered"][N].items()
+                if k not in ("gp", "eta")
+            }
             for N in chain_sizes
         },
     }
@@ -492,10 +529,11 @@ def _plot_scaling(results: dict, fit: dict, chain_sizes: list, out_dir: Path) ->
     fig = plt.figure(figsize=(18, 16))
     fig.suptitle(
         "ENAQT N-Site Chain Scaling  —  Saturation Model + Bootstrap 95% CIs",
-        fontsize=15, fontweight="bold", y=0.99,
+        fontsize=15,
+        fontweight="bold",
+        y=0.99,
     )
     gs = gridspec.GridSpec(3, 2, hspace=0.48, wspace=0.38)
-    gp_arr = np.logspace(-3, 3, 200)
 
     Ns = np.array(chain_sizes)
     n_sizes = len(chain_sizes)
@@ -509,14 +547,26 @@ def _plot_scaling(results: dict, fit: dict, chain_sizes: list, out_dir: Path) ->
         col = size_col_map[N]
         lw = 2.5 if N in (2, 5, 10, 20) else 1.2
         ax0.plot(
-            r["gp"], r["eta"], lw=lw, color=col,
-            label=f"N={N:2d}  ({r['enhancement']:.1f}x)"
-            if N in (2, 5, 10, 15, 20) else None,
+            r["gp"],
+            r["eta"],
+            lw=lw,
+            color=col,
+            label=(
+                f"N={N:2d}  ({r['enhancement']:.1f}x)"
+                if N in (2, 5, 10, 15, 20)
+                else None
+            ),
         )
         if r["interior_peak"]:
             ax0.plot(
-                r["gp_star"], r["eta_peak"], "o", color=col, ms=6,
-                markeredgecolor="white", markeredgewidth=0.8, zorder=5,
+                r["gp_star"],
+                r["eta_peak"],
+                "o",
+                color=col,
+                ms=6,
+                markeredgecolor="white",
+                markeredgewidth=0.8,
+                zorder=5,
             )
     ax0.set_xscale("log")
     ax0.set_xlabel("Dephasing Rate  gamma_phi  [Delta]")
@@ -525,10 +575,14 @@ def _plot_scaling(results: dict, fit: dict, chain_sizes: list, out_dir: Path) ->
     ax0.legend(title="N (enhancement)", fontsize=8, ncol=2)
     ax0.grid(True)
     ax0.text(
-        0.03, 0.97,
+        0.03,
+        0.97,
         "Arrows show optimal gamma_phi* shifting left\n"
         "as N increases (longer chains need gentler noise)",
-        transform=ax0.transAxes, fontsize=8.5, color="#444", va="top",
+        transform=ax0.transAxes,
+        fontsize=8.5,
+        color="#444",
+        va="top",
         bbox=dict(boxstyle="round,pad=0.3", facecolor="lightyellow", alpha=0.8),
     )
 
@@ -538,38 +592,78 @@ def _plot_scaling(results: dict, fit: dict, chain_sizes: list, out_dir: Path) ->
     enh_flat = np.array([results["flat"][N]["enhancement"] for N in chain_sizes])
     enh_dis = np.array([results["disordered"][N]["enhancement"] for N in chain_sizes])
 
-    ax1.plot(Ns, enh_funnel, "o-", color="#E74C3C", lw=2.5, ms=8,
-             markeredgecolor="white", markeredgewidth=1.2,
-             label="Energy funnel  (bias=5Delta)")
-    ax1.plot(Ns, enh_dis, "s-", color="#9B59B6", lw=2.0, ms=7,
-             markeredgecolor="white", markeredgewidth=1.0,
-             label="Disordered  (sigma=2Delta)")
-    ax1.plot(Ns, enh_flat, "^-", color="#2980B9", lw=2.0, ms=7,
-             markeredgecolor="white", markeredgewidth=1.0,
-             label="Flat chain  (no bias)")
+    ax1.plot(
+        Ns,
+        enh_funnel,
+        "o-",
+        color="#E74C3C",
+        lw=2.5,
+        ms=8,
+        markeredgecolor="white",
+        markeredgewidth=1.2,
+        label="Energy funnel  (bias=5Delta)",
+    )
+    ax1.plot(
+        Ns,
+        enh_dis,
+        "s-",
+        color="#9B59B6",
+        lw=2.0,
+        ms=7,
+        markeredgecolor="white",
+        markeredgewidth=1.0,
+        label="Disordered  (sigma=2Delta)",
+    )
+    ax1.plot(
+        Ns,
+        enh_flat,
+        "^-",
+        color="#2980B9",
+        lw=2.0,
+        ms=7,
+        markeredgecolor="white",
+        markeredgewidth=1.0,
+        label="Flat chain  (no bias)",
+    )
 
     # Linear fit with CI
     x_fine = np.array(fit["x_fine"])
     lp = fit["linear_params"]
     ax1.plot(
-        x_fine, lp["a"] * x_fine + lp["b"], "--", color="#E74C3C", lw=1.5,
-        alpha=0.7, label=f"Linear: {lp['a']:.2f}N + {lp['b']:.2f}  (R\u00b2={fit['linear_r2']:.3f})",
+        x_fine,
+        lp["a"] * x_fine + lp["b"],
+        "--",
+        color="#E74C3C",
+        lw=1.5,
+        alpha=0.7,
+        label=f"Linear: {lp['a']:.2f}N + {lp['b']:.2f}  (R\u00b2={fit['linear_r2']:.3f})",
     )
     ax1.fill_between(
-        x_fine, fit["linear_ci_lower"], fit["linear_ci_upper"],
-        color="#E74C3C", alpha=0.12,
+        x_fine,
+        fit["linear_ci_lower"],
+        fit["linear_ci_upper"],
+        color="#E74C3C",
+        alpha=0.12,
     )
 
     # Saturation fit with CI
     sp = fit["sat_params"]
     sat_curve = sp["a"] * (x_fine ** sp["b"]) * np.exp(-sp["c"] * x_fine)
     ax1.plot(
-        x_fine, sat_curve, "-.", color="#2ECC71", lw=1.8,
-        alpha=0.8, label=f"Saturation: aN^b exp(-cN)  (R\u00b2={fit['sat_r2']:.3f})",
+        x_fine,
+        sat_curve,
+        "-.",
+        color="#2ECC71",
+        lw=1.8,
+        alpha=0.8,
+        label=f"Saturation: aN^b exp(-cN)  (R\u00b2={fit['sat_r2']:.3f})",
     )
     ax1.fill_between(
-        x_fine, fit["sat_ci_lower"], fit["sat_ci_upper"],
-        color="#2ECC71", alpha=0.12,
+        x_fine,
+        fit["sat_ci_lower"],
+        fit["sat_ci_upper"],
+        color="#2ECC71",
+        alpha=0.12,
     )
 
     ax1.set_xlabel("Chain Length  N")
@@ -587,18 +681,40 @@ def _plot_scaling(results: dict, fit: dict, chain_sizes: list, out_dir: Path) ->
     gp_star_fun = [results["funnel"][N]["gp_star"] for N in chain_sizes]
     gp_star_flat = [results["flat"][N]["gp_star"] for N in chain_sizes]
 
-    ax2.plot(Ns, gp_star_fun, "o-", color="#E74C3C", lw=2.2, ms=8,
-             markeredgecolor="white", markeredgewidth=1.2, label="Energy funnel")
-    ax2.plot(Ns, gp_star_flat, "^-", color="#2980B9", lw=2.0, ms=7,
-             markeredgecolor="white", markeredgewidth=1.0, label="Flat chain")
+    ax2.plot(
+        Ns,
+        gp_star_fun,
+        "o-",
+        color="#E74C3C",
+        lw=2.2,
+        ms=8,
+        markeredgecolor="white",
+        markeredgewidth=1.2,
+        label="Energy funnel",
+    )
+    ax2.plot(
+        Ns,
+        gp_star_flat,
+        "^-",
+        color="#2980B9",
+        lw=2.0,
+        ms=7,
+        markeredgecolor="white",
+        markeredgewidth=1.0,
+        label="Flat chain",
+    )
 
     log_N = np.log(Ns)
     log_gp = np.log(np.array(gp_star_fun))
     fit2 = np.polyfit(log_N, log_gp, 1)
     Ns_fine = np.linspace(Ns.min(), Ns.max(), 100)
     ax2.plot(
-        Ns_fine, np.exp(np.polyval(fit2, np.log(Ns_fine))), "--",
-        color="#E74C3C", lw=1.3, alpha=0.7,
+        Ns_fine,
+        np.exp(np.polyval(fit2, np.log(Ns_fine))),
+        "--",
+        color="#E74C3C",
+        lw=1.3,
+        alpha=0.7,
         label=f"Power law: ~ N^{fit2[0]:.2f}",
     )
 
@@ -611,20 +727,19 @@ def _plot_scaling(results: dict, fit: dict, chain_sizes: list, out_dir: Path) ->
 
     # ── (1,1): Population flow at optimal gamma_phi (N=7) ─────────────
     ax3 = fig.add_subplot(gs[1, 1])
-    N_demo = 7
-    H_demo = hamiltonian_funnel(N_demo, _DELTA)
+    # Demo chain: N=7 (FMO-scale) when computed, else the longest chain.
+    N_demo = 7 if 7 in results["funnel"] else max(chain_sizes)
+    H_demo = hamiltonian_funnel(N_demo, _BIAS, _DELTA)
     gp_opt = results["funnel"][N_demo]["gp_star"]
-    t, pops, eta_t = time_trajectory(
-        H_demo, gp_opt, _KAPPA, _GAMMA, t_span=(0, 60.0)
-    )
+    t, pops, eta_t = time_trajectory(H_demo, gp_opt, _KAPPA, _GAMMA, t_span=(0, 60.0))
 
     site_colors = plt.cm.RdYlGn_r(np.linspace(0.05, 0.95, N_demo))
     for j in range(N_demo):
         lw = 2.5 if j in (0, N_demo - 1) else 1.3
         label = (
-            f"Site {j + 1} (donor)" if j == 0 else
-            f"Site {j + 1} (RC)" if j == N_demo - 1 else
-            f"Site {j + 1}"
+            f"Site {j + 1} (donor)"
+            if j == 0
+            else f"Site {j + 1} (RC)" if j == N_demo - 1 else f"Site {j + 1}"
         )
         ax3.plot(t, pops[j], lw=lw, color=site_colors[j], label=label)
     ax3.plot(t, eta_t, "k-", lw=2.5, label=f"eta(t) yield (final={eta_t[-1]:.3f})")
@@ -634,7 +749,7 @@ def _plot_scaling(results: dict, fit: dict, chain_sizes: list, out_dir: Path) ->
     ax3.set_ylim(-0.02, 1.02)
     ax3.set_title(
         f"Population Flow  (N={N_demo}, gamma_phi*={gp_opt:.3f})\n"
-        "Energy flows site 1 -> site 7 -> RC"
+        f"Energy flows site 1 -> site {N_demo} -> RC"
     )
     ax3.legend(fontsize=8, ncol=2)
     ax3.grid(True)
@@ -642,17 +757,20 @@ def _plot_scaling(results: dict, fit: dict, chain_sizes: list, out_dir: Path) ->
     # ── (2,0): Enhancement heat map ────────────────────────────────────
     ax4 = fig.add_subplot(gs[2, 0])
 
+    n_max = max(chain_sizes)
     Ns_heat = np.arange(2, min(n_max + 1, 21))
     gp_heat = np.logspace(-3, 3, 80)
     eta_zero_map = {}
     ETA_MAP = np.zeros((len(Ns_heat), len(gp_heat)))
 
     for i, Nh in enumerate(Ns_heat):
-        H = hamiltonian_funnel(Nh, _DELTA)
-        eta0 = analytical_yield(H, 1e-3, _KAPPA, _GAMMA)
+        Lb_h, Ld_h = liouvillian_parts(
+            hamiltonian_funnel(int(Nh), _BIAS, _DELTA), _KAPPA, _GAMMA
+        )
+        eta0 = analytical_yield(Lb_h + 1e-3 * Ld_h, _KAPPA, int(Nh))
         eta_zero_map[Nh] = eta0
         for j, gph in enumerate(gp_heat):
-            ETA_MAP[i, j] = analytical_yield(H, gph, _KAPPA, _GAMMA)
+            ETA_MAP[i, j] = analytical_yield(Lb_h + gph * Ld_h, _KAPPA, int(Nh))
 
     # Normalize each row by zero-dephasing value
     ENH_MAP = np.zeros_like(ETA_MAP)
@@ -725,9 +843,16 @@ def _plot_scaling(results: dict, fit: dict, chain_sizes: list, out_dir: Path) ->
         "Shaded regions = 95% bootstrap CI"
     )
 
-    ax5.text(0.05, 0.95, diag_text, transform=ax5.transAxes, fontsize=9,
-             va="top", fontfamily="monospace",
-             bbox=dict(boxstyle="round,pad=0.5", facecolor="#f8f8f8", alpha=0.95))
+    ax5.text(
+        0.05,
+        0.95,
+        diag_text,
+        transform=ax5.transAxes,
+        fontsize=9,
+        va="top",
+        fontfamily="monospace",
+        bbox=dict(boxstyle="round,pad=0.5", facecolor="#f8f8f8", alpha=0.95),
+    )
 
     out_path = out_dir / "enaqt_nsite_scaling.png"
     plt.savefig(out_path, dpi=150, bbox_inches="tight")
@@ -739,6 +864,7 @@ def _plot_scaling(results: dict, fit: dict, chain_sizes: list, out_dir: Path) ->
 # ============================================================================
 #  run_fmo_benchmark
 # ============================================================================
+
 
 def run_fmo_benchmark(
     out_dir: Path | str | None = None,
@@ -798,7 +924,7 @@ def run_fmo_benchmark(
     }
 
     # Also compute funnel N=7 for comparison
-    H_fun7 = hamiltonian_funnel(7, _DELTA)
+    H_fun7 = hamiltonian_funnel(7, _BIAS, _DELTA)
     Lb_fun, Ld_fun = liouvillian_parts(H_fun7, _KAPPA, _GAMMA)
     gp_fun, eta_fun = optimal_dephasing(Lb_fun, Ld_fun, _KAPPA, 7, n_points=200)
 
@@ -818,41 +944,65 @@ def run_fmo_benchmark(
     abs_fun_peak = p_fun7["eta_peak"]
     abs_fun_zero = p_fun7["eta_zero"]
 
-    print(f"  FMO-7:  enhancement={p_fmo['enhancement']:.2f}x, "
-          f"peak_yield={abs_fmo_peak:.4f}, zero_yield={abs_fmo_zero:.4f}")
-    print(f"  Funnel-7: enhancement={p_fun7['enhancement']:.2f}x, "
-          f"peak_yield={abs_fun_peak:.4f}, zero_yield={abs_fun_zero:.4f}")
+    print(
+        f"  FMO-7:  enhancement={p_fmo['enhancement']:.2f}x, "
+        f"peak_yield={abs_fmo_peak:.4f}, zero_yield={abs_fmo_zero:.4f}"
+    )
+    print(
+        f"  Funnel-7: enhancement={p_fun7['enhancement']:.2f}x, "
+        f"peak_yield={abs_fun_peak:.4f}, zero_yield={abs_fun_zero:.4f}"
+    )
 
     # ---- Plot ----
     fig, ax = plt.subplots(figsize=(10, 7))
 
     ax.plot(
-        gp_fmo, eta_fmo, lw=2.5, color="#F39C12",
+        gp_fmo,
+        eta_fmo,
+        lw=2.5,
+        color="#F39C12",
         label=f"FMO-7 (actual, {p_fmo['enhancement']:.1f}x, "
-              f"yield={abs_fmo_peak:.3f})",
+        f"yield={abs_fmo_peak:.3f})",
     )
     ax.plot(
-        gp_fun, eta_fun, lw=2.5, color="#E74C3C",
+        gp_fun,
+        eta_fun,
+        lw=2.5,
+        color="#E74C3C",
         label=f"Funnel N=7 (bias=5, {p_fun7['enhancement']:.1f}x, "
-              f"yield={abs_fun_peak:.3f})",
+        f"yield={abs_fun_peak:.3f})",
     )
 
     # Mark peaks
     ax.plot(
-        p_fmo["gp_star"], p_fmo["eta_peak"], "*", color="#F39C12", ms=14,
-        zorder=5, markeredgecolor="white",
+        p_fmo["gp_star"],
+        p_fmo["eta_peak"],
+        "*",
+        color="#F39C12",
+        ms=14,
+        zorder=5,
+        markeredgecolor="white",
     )
     ax.plot(
-        p_fun7["gp_star"], p_fun7["eta_peak"], "*", color="#E74C3C", ms=14,
-        zorder=5, markeredgecolor="white",
+        p_fun7["gp_star"],
+        p_fun7["eta_peak"],
+        "*",
+        color="#E74C3C",
+        ms=14,
+        zorder=5,
+        markeredgecolor="white",
     )
 
     # Caveat text box
     caveat_text = "\n".join(f"  {i + 1}. {c}" for i, c in enumerate(CAVEATS))
     ax.text(
-        0.97, 0.97,
+        0.97,
+        0.97,
         f"CAVEATS:\n{caveat_text}",
-        transform=ax.transAxes, fontsize=8.5, va="top", ha="right",
+        transform=ax.transAxes,
+        fontsize=8.5,
+        va="top",
+        ha="right",
         color="#8B0000",
         bbox=dict(boxstyle="round,pad=0.4", facecolor="#FFF0F0", alpha=0.95),
     )

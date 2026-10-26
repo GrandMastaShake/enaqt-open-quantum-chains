@@ -27,47 +27,39 @@ from pathlib import Path
 from typing import Any
 
 import matplotlib
+import matplotlib.colors as mcolors
 import matplotlib.gridspec as gridspec
 import matplotlib.pyplot as plt
 import numpy as np
 from matplotlib.lines import Line2D
 from scipy.integrate import solve_ivp
 
-# ---------------------------------------------------------------------------
-# Delegate all Hamiltonian / Liouvillian construction to enaqt.core
-# ---------------------------------------------------------------------------
-try:
-    from enaqt.core import (
-        analytical_yield,
-        hamiltonian_2site,
-        liouvillian,
-        liouvillian_parts,
-        save_json,
-    )
-except ImportError:  # pragma: no cover  (core lives on another branch)
-    pass
-
 matplotlib.use("Agg")
 
+# numpy 2.0 renamed np.trapz -> np.trapezoid (np.trapz was removed in 2.x).
+_trapezoid = getattr(np, "trapezoid", None) or getattr(np, "trapz")
+
 # ── Styling ─────────────────────────────────────────────────────────────────
-plt.rcParams.update({
-    "font.family": "DejaVu Sans",
-    "font.size": 11,
-    "axes.titlesize": 13,
-    "axes.labelsize": 12,
-    "legend.fontsize": 9,
-    "figure.dpi": 100,
-    "axes.spines.top": False,
-    "axes.spines.right": False,
-    "grid.alpha": 0.3,
-    "grid.linewidth": 0.7,
-})
+plt.rcParams.update(
+    {
+        "font.family": "DejaVu Sans",
+        "font.size": 11,
+        "axes.titlesize": 13,
+        "axes.labelsize": 12,
+        "legend.fontsize": 9,
+        "figure.dpi": 100,
+        "axes.spines.top": False,
+        "axes.spines.right": False,
+        "grid.alpha": 0.3,
+        "grid.linewidth": 0.7,
+    }
+)
 
 _COLORS = {
-    "sym": "#2980B9",   # blue  -- symmetric ε=0
+    "sym": "#2980B9",  # blue  -- symmetric ε=0
     "asym": "#C0392B",  # red   -- asymmetric ε=1
-    "low": "#27AE60",   # green -- localization regime
-    "mid": "#F39C12",   # orange -- optimal ENAQT
+    "low": "#27AE60",  # green -- localization regime
+    "mid": "#F39C12",  # orange -- optimal ENAQT
     "high": "#8E44AD",  # purple -- quantum Zeno
     "neutral": "#7F8C8D",
 }
@@ -76,6 +68,7 @@ _COLORS = {
 # ═════════════════════════════════════════════════════════════════════════════
 #  Private helpers -- data loading
 # ═════════════════════════════════════════════════════════════════════════════
+
 
 def _parse_filename(fpath: str) -> dict[str, Any]:
     """Extract physical parameters from an SB trajectory filename.
@@ -140,7 +133,6 @@ def _load_all(data_dir: str | Path) -> list[dict[str, Any]]:
         traj = np.load(fpath)  # shape (401, 5) complex128
 
         t = traj[:, 0].real
-        rho11 = traj[:, 1].real
         rho22 = traj[:, 4].real
         coh = traj[:, 2]  # ρ₁₂
 
@@ -152,30 +144,28 @@ def _load_all(data_dir: str | Path) -> list[dict[str, Any]]:
         eta_final = float(rho22[-1])
 
         # Time-averaged site-2 population
-        eta_avg = float(np.trapz(rho22, t) / (t[-1] - t[0]))
+        eta_avg = float(_trapezoid(rho22, t) / (t[-1] - t[0]))
 
         # Coherence lifetime -- time when |ρ₁₂| first drops to 1/e of max
         coh_mag = np.abs(coh)
         coh_init = coh_mag.max()
         coh_thresh = coh_init / np.e
         coh_decay_idx = (
-            np.argmax(coh_mag < coh_thresh)
-            if np.any(coh_mag < coh_thresh)
-            else -1
+            np.argmax(coh_mag < coh_thresh) if np.any(coh_mag < coh_thresh) else -1
         )
-        coh_lifetime = (
-            float(t[coh_decay_idx]) if coh_decay_idx > 0 else float(t[-1])
-        )
+        coh_lifetime = float(t[coh_decay_idx]) if coh_decay_idx > 0 else float(t[-1])
 
-        records.append({
-            **p,
-            "T": T,
-            "gamma_phi": gamma_phi,
-            "eta_final": eta_final,
-            "eta_avg": eta_avg,
-            "coh_lifetime": coh_lifetime,
-            "fpath": fpath,
-        })
+        records.append(
+            {
+                **p,
+                "T": T,
+                "gamma_phi": gamma_phi,
+                "eta_final": eta_final,
+                "eta_avg": eta_avg,
+                "coh_lifetime": coh_lifetime,
+                "fpath": fpath,
+            }
+        )
 
     return records
 
@@ -183,6 +173,7 @@ def _load_all(data_dir: str | Path) -> list[dict[str, Any]]:
 # ═════════════════════════════════════════════════════════════════════════════
 #  Private helpers -- log binning
 # ═════════════════════════════════════════════════════════════════════════════
+
 
 def _log_bin(
     x: np.ndarray,
@@ -227,6 +218,7 @@ def _log_bin(
 #  Private helpers -- Bloch physics (2-site, 4-element state vector)
 # ═════════════════════════════════════════════════════════════════════════════
 
+
 def _bloch_liouvillian_4x4(
     eps: float,
     Delta: float,
@@ -257,12 +249,14 @@ def _bloch_liouvillian_4x4(
         4×4 real matrix *A* such that ``dρ/dt = A @ ρ``.
     """
     g = gp + kappa / 2 + Gamma  # total coherence decay rate
-    return np.array([
-        [-Gamma,          0,        0,       -Delta    ],
-        [  0,   -(kappa + Gamma),   0,        Delta    ],
-        [  0,         0,           -g,         eps     ],
-        [Delta / 2,  -Delta / 2,   -eps,       -g      ],
-    ])
+    return np.array(
+        [
+            [-Gamma, 0, 0, -Delta],
+            [0, -(kappa + Gamma), 0, Delta],
+            [0, 0, -g, eps],
+            [Delta / 2, -Delta / 2, -eps, -g],
+        ]
+    )
 
 
 def _analytical_yield_4x4(
@@ -344,16 +338,16 @@ def _sweep_gamma_phi(
         Both are 1-D arrays of length *n_pts*.
     """
     gp_arr = np.logspace(-3, 3, n_pts)
-    eta = np.array([
-        _analytical_yield_4x4(eps, Delta, gp, kappa, Gamma)
-        for gp in gp_arr
-    ])
+    eta = np.array(
+        [_analytical_yield_4x4(eps, Delta, gp, kappa, Gamma) for gp in gp_arr]
+    )
     return gp_arr, eta
 
 
 # ═════════════════════════════════════════════════════════════════════════════
 #  Private helpers -- trace distance
 # ═════════════════════════════════════════════════════════════════════════════
+
 
 def _trace_distance(rho: np.ndarray, sigma: np.ndarray) -> float:
     """Quantum trace distance T(ρ, σ) = ½ ||ρ – σ||₁.
@@ -394,15 +388,19 @@ def _reconstruct_rho2x2(
     np.ndarray
         2×2 Hermitian density matrix.
     """
-    return np.array([
-        [rho11, rho12],
-        [np.conj(rho12), rho22],
-    ], dtype=complex)
+    return np.array(
+        [
+            [rho11, rho12],
+            [np.conj(rho12), rho22],
+        ],
+        dtype=complex,
+    )
 
 
 # ═════════════════════════════════════════════════════════════════════════════
 #  Private helpers -- plotting
 # ═════════════════════════════════════════════════════════════════════════════
+
 
 def _plot_validation_main(
     sym: dict,
@@ -429,12 +427,20 @@ def _plot_validation_main(
         eta_s = np.array(res["eta_std"])
         col = _COLORS[key]
 
-        ax1.scatter(res["gp_raw"], res["eta_raw"],
-                    c=col, alpha=0.10, s=8, zorder=1)
-        ax1.fill_between(gp_b, eta_b - eta_s, eta_b + eta_s,
-                         color=col, alpha=0.15, zorder=2)
-        ax1.plot(gp_b, eta_b, f"{marker}-", color=col, lw=2.2, ms=7,
-                 label=res["label"], zorder=3)
+        ax1.scatter(res["gp_raw"], res["eta_raw"], c=col, alpha=0.10, s=8, zorder=1)
+        ax1.fill_between(
+            gp_b, eta_b - eta_s, eta_b + eta_s, color=col, alpha=0.15, zorder=2
+        )
+        ax1.plot(
+            gp_b,
+            eta_b,
+            f"{marker}-",
+            color=col,
+            lw=2.2,
+            ms=7,
+            label=res["label"],
+            zorder=3,
+        )
 
         if res["enaqt_detected"]:
             opt = res["optimal_gamma_phi"]
@@ -442,13 +448,17 @@ def _plot_validation_main(
             ax1.axvline(opt, color=col, lw=1.2, ls="--", alpha=0.6)
             ax1.annotate(
                 f"γ*={opt:.2f}\nη*={pk:.3f}",
-                xy=(opt, pk), xytext=(opt * 2.5, pk * 0.97),
-                fontsize=8, color=col,
+                xy=(opt, pk),
+                xytext=(opt * 2.5, pk * 0.97),
+                fontsize=8,
+                color=col,
                 arrowprops=dict(arrowstyle="->", color=col, lw=1),
             )
 
     ax1.set_xscale("log")
-    ax1.set_xlabel(r"Dephasing Rate  $\gamma_\phi = 2\lambda/(\beta\gamma_c)$  [$\Delta$]")
+    ax1.set_xlabel(
+        r"Dephasing Rate  $\gamma_\phi = 2\lambda/(\beta\gamma_c)$  [$\Delta$]"
+    )
     ax1.set_ylabel(r"Transfer Efficiency  $\eta = \rho_{22}(t_{\mathrm{final}})$")
     ax1.set_title("ENAQT Bell Curve  (Final Population at Sink)")
     ax1.legend()
@@ -458,11 +468,18 @@ def _plot_validation_main(
     banner = "✓ ENAQT DETECTED" if detected else "✗ Bell curve not found"
     banner_col = "#27AE60" if detected else "#E74C3C"
     ax1.text(
-        0.97, 0.05, banner, transform=ax1.transAxes,
-        ha="right", va="bottom", fontsize=10, fontweight="bold",
+        0.97,
+        0.05,
+        banner,
+        transform=ax1.transAxes,
+        ha="right",
+        va="bottom",
+        fontsize=10,
+        fontweight="bold",
         color=banner_col,
-        bbox=dict(boxstyle="round,pad=0.3", facecolor="white",
-                  edgecolor=banner_col, alpha=0.9),
+        bbox=dict(
+            boxstyle="round,pad=0.3", facecolor="white", edgecolor=banner_col, alpha=0.9
+        ),
     )
 
     # -- Panel 2: Trace-distance error ---------------------------------------
@@ -473,15 +490,23 @@ def _plot_validation_main(
         td_s = np.array(res.get("td_binned_std", []))
         col = _COLORS[key]
         if len(gp_b) > 0:
-            ax2.fill_between(gp_b, td_b - td_s, td_b + td_s,
-                             color=col, alpha=0.15)
-            ax2.plot(gp_b, td_b, f"{marker}-", color=col, lw=2.2, ms=7,
-                     label=f"{res['label']} (trace dist)")
+            ax2.fill_between(gp_b, td_b - td_s, td_b + td_s, color=col, alpha=0.15)
+            ax2.plot(
+                gp_b,
+                td_b,
+                f"{marker}-",
+                color=col,
+                lw=2.2,
+                ms=7,
+                label=f"{res['label']} (trace dist)",
+            )
 
     ax2.set_xscale("log")
     ax2.set_xlabel(r"Dephasing Rate  $\gamma_\phi$  [$\Delta$]")
     ax2.set_ylabel(r"Trace Distance  $T(\rho_{\mathrm{HEOM}}, \rho_{\mathrm{Bloch}})$")
-    ax2.set_title("Bloch vs HEOM Discrepancy\n(Trace Distance -- Proper Quantum Metric)")
+    ax2.set_title(
+        "Bloch vs HEOM Discrepancy\n(Trace Distance -- Proper Quantum Metric)"
+    )
     ax2.legend()
     ax2.grid(True)
 
@@ -504,12 +529,19 @@ def _plot_validation_main(
         rho22 = traj[:, 4].real
         gp = rec["gamma_phi"]
         ax3.plot(
-            t, rho22, color=col, lw=2.0,
+            t,
+            rho22,
+            color=col,
+            lw=2.0,
             label=f"{rlabel}\n(γ_φ={gp:.3f}, λ={rec['lam']}, β={rec['beta']})",
         )
 
     ax3.axhline(
-        0.5, color=_COLORS["neutral"], ls="--", lw=1.2, alpha=0.7,
+        0.5,
+        color=_COLORS["neutral"],
+        ls="--",
+        lw=1.2,
+        alpha=0.7,
         label="Thermal equilibrium (ε=0)",
     )
     ax3.set_xlabel(r"Time  [$\Delta^{-1}$]")
@@ -524,8 +556,9 @@ def _plot_validation_main(
     lam_sym = [r["lam"] for r in sym_records]
     eta_sym = [r["eta_final"] for r in sym_records]
 
-    sc = ax4.scatter(gp_sym, lam_sym, c=eta_sym,
-                     cmap="plasma", alpha=0.75, s=25, vmin=0, vmax=1)
+    sc = ax4.scatter(
+        gp_sym, lam_sym, c=eta_sym, cmap="plasma", alpha=0.75, s=25, vmin=0, vmax=1
+    )
     cb = plt.colorbar(sc, ax=ax4, shrink=0.85, pad=0.02)
     cb.set_label(r"$\eta = \rho_{22}(t_{\mathrm{final}})$")
 
@@ -565,7 +598,8 @@ def _plot_validation_gallery(
     fig.suptitle(
         "Population Dynamics -- Symmetric vs Asymmetric SB  |  "
         "Three Dephasing Regimes",
-        fontsize=13, fontweight="bold",
+        fontsize=13,
+        fontweight="bold",
     )
 
     regime_labels = [
@@ -578,10 +612,12 @@ def _plot_validation_gallery(
     for col_idx, (rs, ra, rlabel, rcol) in enumerate(
         zip(picks_sym, picks_asym, regime_labels, regime_cols)
     ):
-        for row_idx, (rec, eps_label) in enumerate([
-            (rs, "ε = 0  (Symmetric)"),
-            (ra, "ε = 1  (Asymmetric)"),
-        ]):
+        for row_idx, (rec, eps_label) in enumerate(
+            [
+                (rs, "ε = 0  (Symmetric)"),
+                (ra, "ε = 1  (Asymmetric)"),
+            ]
+        ):
             ax = axes[row_idx, col_idx]
             traj = np.load(rec["fpath"])
             t = traj[:, 0].real
@@ -589,12 +625,26 @@ def _plot_validation_gallery(
             rho22 = traj[:, 4].real
             coh = np.abs(traj[:, 2])
 
-            ax.plot(t, rho11, lw=1.8, color="#2980B9",
-                    label=r"$\rho_{11}$ (Site 1)", alpha=0.9)
-            ax.plot(t, rho22, lw=1.8, color=rcol,
-                    label=r"$\rho_{22}$ (Site 2)", alpha=0.9)
-            ax.plot(t, coh, lw=1.2, color="#95A5A6",
-                    label=r"$|\rho_{12}|$ (coherence)", ls="--", alpha=0.7)
+            ax.plot(
+                t,
+                rho11,
+                lw=1.8,
+                color="#2980B9",
+                label=r"$\rho_{11}$ (Site 1)",
+                alpha=0.9,
+            )
+            ax.plot(
+                t, rho22, lw=1.8, color=rcol, label=r"$\rho_{22}$ (Site 2)", alpha=0.9
+            )
+            ax.plot(
+                t,
+                coh,
+                lw=1.2,
+                color="#95A5A6",
+                label=r"$|\rho_{12}|$ (coherence)",
+                ls="--",
+                alpha=0.7,
+            )
 
             ax.set_ylim(-0.05, 1.05)
             ax.set_xlabel(r"Time [$\Delta^{-1}$]")
@@ -625,17 +675,21 @@ def _plot_validation_beta_slices(
     betas = sorted({r["beta"] for r in sym})
 
     fig, axes = plt.subplots(
-        1, len(betas), figsize=(4 * len(betas), 5), sharey=True,
+        1,
+        len(betas),
+        figsize=(4 * len(betas), 5),
+        sharey=True,
     )
     if len(betas) == 1:
         axes = [axes]
     fig.suptitle(
         "ENAQT Bell Curves by Temperature  (ε = 0,  Symmetric SB)",
-        fontsize=13, fontweight="bold",
+        fontsize=13,
+        fontweight="bold",
     )
 
     cmap = plt.cm.coolwarm
-    norm = plt.Normalize(vmin=min(betas), vmax=max(betas))
+    norm = mcolors.Normalize(vmin=min(betas), vmax=max(betas))
 
     for ax, beta in zip(axes, betas):
         subset = [r for r in sym if r["beta"] == beta]
@@ -649,8 +703,7 @@ def _plot_validation_beta_slices(
         gp_b, eta_b, eta_s, _ = _log_bin(gp, eta, n_bins=15)
 
         ax.scatter(gp, eta, c=[col] * len(gp), alpha=0.25, s=12)
-        ax.fill_between(gp_b, eta_b - eta_s, eta_b + eta_s,
-                        color=col, alpha=0.20)
+        ax.fill_between(gp_b, eta_b - eta_s, eta_b + eta_s, color=col, alpha=0.20)
         ax.plot(gp_b, eta_b, "o-", color=col, lw=2.0, ms=6)
 
         idx_max = int(np.argmax(eta_b))
@@ -674,6 +727,7 @@ def _plot_validation_beta_slices(
 # ═════════════════════════════════════════════════════════════════════════════
 #  Private helpers -- sink-analysis plotting
 # ═════════════════════════════════════════════════════════════════════════════
+
 
 def _find_peak(
     gp_arr: np.ndarray,
@@ -714,7 +768,9 @@ def _plot_sink_epic(
     fig.suptitle(
         "ENAQT + Lindblad Sink  --  Spin-Boson Model  |  "
         "Rebentrost et al. (2009) Replication",
-        fontsize=15, fontweight="bold", y=0.99,
+        fontsize=15,
+        fontweight="bold",
+        y=0.99,
     )
     gs = gridspec.GridSpec(3, 2, figure=fig, hspace=0.48, wspace=0.38)
 
@@ -729,15 +785,29 @@ def _plot_sink_epic(
 
     peak_summary = []
     for kap, col in zip(kappas, kap_colors):
-        _, eta = _sweep_gamma_phi(eps=5.0, Delta=Delta, kappa=kap, Gamma=Gamma,
-                                  n_pts=n_points)
+        _, eta = _sweep_gamma_phi(
+            eps=5.0, Delta=Delta, kappa=kap, Gamma=Gamma, n_pts=n_points
+        )
         p = _find_peak(gp_arr, eta)
         peak_summary.append((kap, p))
-        ax0.plot(gp_arr, eta, lw=2.0, color=col,
-                 label=f"κ = {kap:.2f}  (peak {p['enhancement_zero']:.1f}×)")
+        ax0.plot(
+            gp_arr,
+            eta,
+            lw=2.0,
+            color=col,
+            label=f"κ = {kap:.2f}  (peak {p['enhancement_zero']:.1f}×)",
+        )
         if p["interior_peak"]:
-            ax0.plot(p["gp_star"], p["eta_star"], "o", color=col, ms=9,
-                     zorder=5, markeredgecolor="white", markeredgewidth=1.2)
+            ax0.plot(
+                p["gp_star"],
+                p["eta_star"],
+                "o",
+                color=col,
+                ms=9,
+                zorder=5,
+                markeredgecolor="white",
+                markeredgewidth=1.2,
+            )
 
     ax0.set_xscale("log")
     ax0.set_xlabel(r"Dephasing Rate  $\gamma_\phi$  [$\Delta$]")
@@ -746,9 +816,14 @@ def _plot_sink_epic(
     ax0.legend(title="Sink rate κ")
     ax0.grid(True)
     ax0.text(
-        0.02, 0.05, r"$\epsilon = 5\Delta$  |  $\Gamma = 0.01\Delta$" "\n"
+        0.02,
+        0.05,
+        r"$\epsilon = 5\Delta$  |  $\Gamma = 0.01\Delta$"
+        "\n"
         "(FMO-like energy asymmetry)",
-        transform=ax0.transAxes, fontsize=9, color="#555",
+        transform=ax0.transAxes,
+        fontsize=9,
+        color="#555",
         bbox=dict(boxstyle="round,pad=0.3", facecolor="lightyellow", alpha=0.8),
     )
 
@@ -758,7 +833,8 @@ def _plot_sink_epic(
         f"({best[1]['enhancement_zero']:.1f}× over coherent limit)",
         xy=(best[1]["gp_star"], best[1]["eta_star"]),
         xytext=(best[1]["gp_star"] * 20, best[1]["eta_star"] * 0.85),
-        fontsize=9, color="#222",
+        fontsize=9,
+        color="#222",
         arrowprops=dict(arrowstyle="->", color="#444", lw=1.3),
     )
 
@@ -768,26 +844,41 @@ def _plot_sink_epic(
     eps_colors = plt.cm.viridis(np.linspace(0.1, 0.95, len(epsilons)))
 
     for eps, col in zip(epsilons, eps_colors):
-        _, eta = _sweep_gamma_phi(eps=eps, Delta=Delta, kappa=0.1, Gamma=Gamma,
-                                  n_pts=n_points)
+        _, eta = _sweep_gamma_phi(
+            eps=eps, Delta=Delta, kappa=0.1, Gamma=Gamma, n_pts=n_points
+        )
         p = _find_peak(gp_arr, eta)
         lbl = f"ε = {eps:.1f}Δ  ({p['enhancement_zero']:.2f}×)"
         ax1.plot(gp_arr, eta, lw=2.0, color=col, label=lbl)
         if p["interior_peak"]:
-            ax1.plot(p["gp_star"], p["eta_star"], "o", color=col, ms=7,
-                     markeredgecolor="white", markeredgewidth=1.0, zorder=5)
+            ax1.plot(
+                p["gp_star"],
+                p["eta_star"],
+                "o",
+                color=col,
+                ms=7,
+                markeredgecolor="white",
+                markeredgewidth=1.0,
+                zorder=5,
+            )
 
     ax1.set_xscale("log")
     ax1.set_xlabel(r"Dephasing Rate  $\gamma_\phi$  [$\Delta$]")
     ax1.set_ylabel(r"Transfer Yield  $\eta_\infty$")
-    ax1.set_title(r"Energy Bias  $\epsilon$  Controls ENAQT Strength  ($\kappa = 0.1\Delta$)")
+    ax1.set_title(
+        r"Energy Bias  $\epsilon$  Controls ENAQT Strength  ($\kappa = 0.1\Delta$)"
+    )
     ax1.legend(title="Energy bias (enhancement)", fontsize=8)
     ax1.grid(True)
     ax1.text(
-        0.98, 0.95,
+        0.98,
+        0.95,
         "Larger ε  →  stronger ENAQT\n(coherent tunneling less efficient)",
-        transform=ax1.transAxes, fontsize=8.5, color="#333",
-        ha="right", va="top",
+        transform=ax1.transAxes,
+        fontsize=8.5,
+        color="#333",
+        ha="right",
+        va="top",
         bbox=dict(boxstyle="round,pad=0.3", facecolor="lightyellow", alpha=0.8),
     )
 
@@ -795,21 +886,44 @@ def _plot_sink_epic(
     ax2 = fig.add_subplot(gs[1, 0])
 
     _, eta_no_sink = _sweep_gamma_phi(
-        eps=1.0, Delta=Delta, kappa=0.0, Gamma=Gamma, n_pts=n_points,
+        eps=1.0,
+        Delta=Delta,
+        kappa=0.0,
+        Gamma=Gamma,
+        n_pts=n_points,
     )
     _, eta_sink = _sweep_gamma_phi(
-        eps=1.0, Delta=Delta, kappa=0.1, Gamma=Gamma, n_pts=n_points,
+        eps=1.0,
+        Delta=Delta,
+        kappa=0.1,
+        Gamma=Gamma,
+        n_pts=n_points,
     )
     _, eta_fastsink = _sweep_gamma_phi(
-        eps=1.0, Delta=Delta, kappa=1.0, Gamma=Gamma, n_pts=n_points,
+        eps=1.0,
+        Delta=Delta,
+        kappa=1.0,
+        Gamma=Gamma,
+        n_pts=n_points,
     )
 
-    ax2.plot(gp_arr, eta_no_sink, lw=2.0, color="#7F8C8D", ls="--",
-             label="Bloch (no sink,  κ=0)")
-    ax2.plot(gp_arr, eta_sink, lw=2.5, color="#E74C3C",
-             label="Bloch + sink  κ=0.1")
-    ax2.plot(gp_arr, eta_fastsink, lw=2.5, color="#C0392B", ls="-.",
-             label="Bloch + sink  κ=1.0")
+    ax2.plot(
+        gp_arr,
+        eta_no_sink,
+        lw=2.0,
+        color="#7F8C8D",
+        ls="--",
+        label="Bloch (no sink,  κ=0)",
+    )
+    ax2.plot(gp_arr, eta_sink, lw=2.5, color="#E74C3C", label="Bloch + sink  κ=0.1")
+    ax2.plot(
+        gp_arr,
+        eta_fastsink,
+        lw=2.5,
+        color="#C0392B",
+        ls="-.",
+        label="Bloch + sink  κ=1.0",
+    )
 
     # Overlay HEOM SB dataset (asymmetric ε=1 case)
     if sb_data and "asymmetric_case" in sb_data:
@@ -819,20 +933,36 @@ def _plot_sink_epic(
         std_heom = ac.get("eta_std", [])
         if gp_heom:
             ax2.errorbar(
-                gp_heom, eta_heom, yerr=std_heom,
-                fmt="s", color="#2980B9", ms=7, capsize=3, lw=1.5,
-                label="SB HEOM (exact, ε=1, no sink)", zorder=6,
+                gp_heom,
+                eta_heom,
+                yerr=std_heom,
+                fmt="s",
+                color="#2980B9",
+                ms=7,
+                capsize=3,
+                lw=1.5,
+                label="SB HEOM (exact, ε=1, no sink)",
+                zorder=6,
             )
 
     # FMO reference
-    ax2.axhline(0.9586, color="#F39C12", lw=1.5, ls=":", alpha=0.8,
-                label="FMO-8 HEOM peak (4.12× enhancement)")
+    ax2.axhline(
+        0.9586,
+        color="#F39C12",
+        lw=1.5,
+        ls=":",
+        alpha=0.8,
+        label="FMO-8 HEOM peak (4.12× enhancement)",
+    )
 
     ax2.set_xscale("log")
     ax2.set_xlabel(r"Dephasing Rate  $\gamma_\phi$  [$\Delta$]")
     ax2.set_ylabel(r"Transfer Efficiency / Yield  $\eta$")
-    ax2.set_title(r"HEOM Data vs Bloch+Sink  ($\epsilon = 1\Delta$)" "\n"
-                  "Small sink → big effect!")
+    ax2.set_title(
+        r"HEOM Data vs Bloch+Sink  ($\epsilon = 1\Delta$)"
+        "\n"
+        "Small sink → big effect!"
+    )
     ax2.legend(fontsize=8)
     ax2.grid(True)
 
@@ -842,7 +972,8 @@ def _plot_sink_epic(
         f"({p_sink['enhancement_zero']:.2f}× over zero-deph)",
         xy=(p_sink["gp_star"], p_sink["eta_star"]),
         xytext=(p_sink["gp_star"] * 0.05, p_sink["eta_star"] * 0.78),
-        fontsize=9, color="#E74C3C",
+        fontsize=9,
+        color="#E74C3C",
         arrowprops=dict(arrowstyle="->", color="#E74C3C", lw=1.2),
     )
 
@@ -853,14 +984,26 @@ def _plot_sink_epic(
 
     for kap, col in zip(kappas2, kap2_colors):
         _, eta = _sweep_gamma_phi(
-            eps=1.0, Delta=Delta, kappa=kap, Gamma=Gamma, n_pts=n_points,
+            eps=1.0,
+            Delta=Delta,
+            kappa=kap,
+            Gamma=Gamma,
+            n_pts=n_points,
         )
         p = _find_peak(gp_arr, eta)
         lbl = f"κ={kap:.3f}  ({p['enhancement_zero']:.2f}×)"
         ax3.plot(gp_arr, eta, lw=2.0, color=col, label=lbl)
         if p["interior_peak"]:
-            ax3.plot(p["gp_star"], p["eta_star"], "o", color=col, ms=6,
-                     markeredgecolor="white", markeredgewidth=1.0, zorder=5)
+            ax3.plot(
+                p["gp_star"],
+                p["eta_star"],
+                "o",
+                color=col,
+                ms=6,
+                markeredgecolor="white",
+                markeredgewidth=1.0,
+                zorder=5,
+            )
 
     ax3.set_xscale("log")
     ax3.set_xlabel(r"Dephasing Rate  $\gamma_\phi$  [$\Delta$]")
@@ -872,20 +1015,31 @@ def _plot_sink_epic(
     # -- Panel (2,0): Time-domain dynamics -- 3 regimes (ε=5, κ=0.1) --------
     ax4 = fig.add_subplot(gs[2, 0])
 
-    gp_optimal = _find_peak(*_sweep_gamma_phi(
-        5.0, Delta, 0.1, Gamma, n_pts=n_points,
-    ))["gp_star"]
+    gp_optimal = _find_peak(
+        *_sweep_gamma_phi(
+            5.0,
+            Delta,
+            0.1,
+            Gamma,
+            n_pts=n_points,
+        )
+    )["gp_star"]
     regimes = {
-        f"Low  γ_φ=0.01  (coherent limit)": (0.01, "#27AE60"),
+        "Low  γ_φ=0.01  (coherent limit)": (0.01, "#27AE60"),
         f"Opt  γ_φ={gp_optimal:.2f}  (ENAQT sweet spot)": (gp_optimal, "#E74C3C"),
-        f"High γ_φ=100   (quantum Zeno)": (100.0, "#8E44AD"),
+        "High γ_φ=100   (quantum Zeno)": (100.0, "#8E44AD"),
     }
 
     T_dyn = 200.0
     for label, (gp_val, col) in regimes.items():
-        t, y = _time_trajectory(
-            eps=5.0, Delta=Delta, gp=gp_val, kappa=0.1,
-            Gamma=Gamma, T=T_dyn, n_pts=5000,
+        t, y = _time_trajectory_4x4(
+            eps=5.0,
+            Delta=Delta,
+            gp=gp_val,
+            kappa=0.1,
+            Gamma=Gamma,
+            T=T_dyn,
+            n_pts=5000,
         )
         rho11 = y[0]
         rho22 = y[1]
@@ -893,27 +1047,42 @@ def _plot_sink_epic(
 
         ax4.plot(t, rho11, color=col, lw=1.8, alpha=0.85, ls="-")
         ax4.plot(t, rho22, color=col, lw=1.8, alpha=0.55, ls="--")
-        ax4.plot(t, eta_t, color=col, lw=2.5, alpha=1.00, ls="-",
-                 label=f"{label}\n(η∞={eta_t[-1]:.3f})")
+        ax4.plot(
+            t,
+            eta_t,
+            color=col,
+            lw=2.5,
+            alpha=1.00,
+            ls="-",
+            label=f"{label}\n(η∞={eta_t[-1]:.3f})",
+        )
 
     legend_extra = [
-        Line2D([0], [0], lw=2, color="#555", ls="-",
-               label=r"$\rho_{11}$  (Site 1)"),
-        Line2D([0], [0], lw=2, color="#555", ls="--",
-               label=r"$\rho_{22}$  (Site 2)"),
-        Line2D([0], [0], lw=2.5, color="#555", ls="-",
-               label=r"$\eta(t)$  (Cumul. yield, bold)"),
+        Line2D([0], [0], lw=2, color="#555", ls="-", label=r"$\rho_{11}$  (Site 1)"),
+        Line2D([0], [0], lw=2, color="#555", ls="--", label=r"$\rho_{22}$  (Site 2)"),
+        Line2D(
+            [0],
+            [0],
+            lw=2.5,
+            color="#555",
+            ls="-",
+            label=r"$\eta(t)$  (Cumul. yield, bold)",
+        ),
     ]
-    h, l = ax4.get_legend_handles_labels()
+    handles: list[Any] = list(ax4.get_legend_handles_labels()[0])
+    labels: list[str] = list(ax4.get_legend_handles_labels()[1])
     ax4.legend(
-        h + legend_extra,
-        l + [e.get_label() for e in legend_extra],
-        fontsize=8, ncol=2,
+        handles + legend_extra,
+        labels + [str(e.get_label()) for e in legend_extra],
+        fontsize=8,
+        ncol=2,
     )
     ax4.set_xlabel(r"Time  [$\Delta^{-1}$]")
     ax4.set_ylabel("Population / Yield")
-    ax4.set_title("Population Dynamics  (ε=5Δ, κ=0.1Δ)  --  Three Regimes\n"
-                  "Thick line = η(t) cumulative RC yield")
+    ax4.set_title(
+        "Population Dynamics  (ε=5Δ, κ=0.1Δ)  --  Three Regimes\n"
+        "Thick line = η(t) cumulative RC yield"
+    )
     ax4.set_ylim(-0.03, 1.05)
     ax4.grid(True)
 
@@ -927,12 +1096,21 @@ def _plot_sink_epic(
     for i, eps in enumerate(eps_vals):
         for j, gp in enumerate(gp_vals):
             ETA_MAP[i, j] = _analytical_yield_4x4(
-                eps, Delta, gp, kappa=0.1, Gamma=Gamma,
+                eps,
+                Delta,
+                gp,
+                kappa=0.1,
+                Gamma=Gamma,
             )
 
     im = ax5.pcolormesh(
-        gp_vals, eps_vals, ETA_MAP, cmap="plasma",
-        shading="auto", vmin=0, vmax=1,
+        gp_vals,
+        eps_vals,
+        ETA_MAP,
+        cmap="plasma",
+        shading="auto",
+        vmin=0,
+        vmax=1,
     )
     cb = plt.colorbar(im, ax=ax5, shrink=0.85, pad=0.02)
     cb.set_label(r"$\eta_\infty$  (total transfer yield)")
@@ -942,19 +1120,27 @@ def _plot_sink_epic(
     for i, _eps in enumerate(eps_vals):
         j_opt = np.argmax(ETA_MAP[i, :])
         optimal_ridge.append(gp_vals[j_opt])
-    ax5.plot(optimal_ridge, eps_vals, "w--", lw=2.0, alpha=0.85,
-             label="Optimal γ_φ (ENAQT ridge)")
+    ax5.plot(
+        optimal_ridge,
+        eps_vals,
+        "w--",
+        lw=2.0,
+        alpha=0.85,
+        label="Optimal γ_φ (ENAQT ridge)",
+    )
 
-    ax5.axhline(1.0, color="cyan", lw=1.5, ls=":", alpha=0.8,
-                label="SB dataset ε = 1Δ")
-    ax5.axhline(5.0, color="lime", lw=1.5, ls=":", alpha=0.8,
-                label="Max enhancement ε = 5Δ")
+    ax5.axhline(1.0, color="cyan", lw=1.5, ls=":", alpha=0.8, label="SB dataset ε = 1Δ")
+    ax5.axhline(
+        5.0, color="lime", lw=1.5, ls=":", alpha=0.8, label="Max enhancement ε = 5Δ"
+    )
 
     ax5.set_xscale("log")
     ax5.set_xlabel(r"Dephasing Rate  $\gamma_\phi$  [$\Delta$]")
     ax5.set_ylabel(r"Energy Bias  $\epsilon$  [$\Delta$]")
-    ax5.set_title("Full Parameter Map  (κ=0.1Δ)\n"
-                  "White dashed = ENAQT ridge (optimal γ_φ at each ε)")
+    ax5.set_title(
+        "Full Parameter Map  (κ=0.1Δ)\n"
+        "White dashed = ENAQT ridge (optimal γ_φ at each ε)"
+    )
     ax5.legend(fontsize=8, loc="upper left")
 
     out_path = out_dir / "spinboson_sink_epic.png"
@@ -972,7 +1158,8 @@ def _plot_sink_comparison(
     fig, (ax_l, ax_r) = plt.subplots(1, 2, figsize=(14, 6))
     fig.suptitle(
         "The Sink Effect -- Environment-Assisted Quantum Transport",
-        fontsize=14, fontweight="bold",
+        fontsize=14,
+        fontweight="bold",
     )
 
     gp_arr = np.logspace(-3, 3, n_points)
@@ -986,24 +1173,44 @@ def _plot_sink_comparison(
         fontsize=11,
     )
 
+    # Defined unconditionally: ``ac`` is also used below for the peak label,
+    # and sb_data is empty when no validation JSON is present.
+    sc = sb_data.get("symmetric_case", {}).get("bell_curve", {}) if sb_data else {}
+    ac = sb_data.get("asymmetric_case", {}).get("bell_curve", {}) if sb_data else {}
     if sb_data:
-        sc = sb_data.get("symmetric_case", {}).get("bell_curve", {})
-        ac = sb_data.get("asymmetric_case", {}).get("bell_curve", {})
         if sc.get("gamma_phi"):
             ax_l.errorbar(
-                sc["gamma_phi"], sc["eta_mean"], yerr=sc["eta_std"],
-                fmt="o-", color="#2980B9", ms=6, capsize=3, lw=2,
+                sc["gamma_phi"],
+                sc["eta_mean"],
+                yerr=sc["eta_std"],
+                fmt="o-",
+                color="#2980B9",
+                ms=6,
+                capsize=3,
+                lw=2,
                 label="HEOM ε=0 (symmetric)",
             )
         if ac.get("gamma_phi"):
             ax_l.errorbar(
-                ac["gamma_phi"], ac["eta_mean"], yerr=ac["eta_std"],
-                fmt="s-", color="#C0392B", ms=6, capsize=3, lw=2,
+                ac["gamma_phi"],
+                ac["eta_mean"],
+                yerr=ac["eta_std"],
+                fmt="s-",
+                color="#C0392B",
+                ms=6,
+                capsize=3,
+                lw=2,
                 label="HEOM ε=1 (asymmetric)",
             )
 
-    ax_l.axhline(0.5, color="#95A5A6", ls="--", lw=1.3, alpha=0.7,
-                 label="Thermal equilibrium (ε=0)")
+    ax_l.axhline(
+        0.5,
+        color="#95A5A6",
+        ls="--",
+        lw=1.3,
+        alpha=0.7,
+        label="Thermal equilibrium (ε=0)",
+    )
 
     ax_l.set_xscale("log")
     ax_l.set_xlabel(r"Dephasing Rate  $\gamma_\phi$  [$\Delta$]")
@@ -1017,9 +1224,14 @@ def _plot_sink_comparison(
         np.array(ac.get("eta_mean", [0.5])),
     )
     ax_l.text(
-        0.03, 0.96, f"Max enhancement: {p_asym['enhancement_zero']:.2f}×",
-        transform=ax_l.transAxes, fontsize=12, fontweight="bold",
-        color="#C0392B", va="top",
+        0.03,
+        0.96,
+        f"Max enhancement: {p_asym['enhancement_zero']:.2f}×",
+        transform=ax_l.transAxes,
+        fontsize=12,
+        fontweight="bold",
+        color="#C0392B",
+        va="top",
         bbox=dict(boxstyle="round,pad=0.4", facecolor="#FADBD8", alpha=0.9),
     )
 
@@ -1038,17 +1250,40 @@ def _plot_sink_comparison(
     ]
     for eps, kap, col, lbl in configs:
         _, eta = _sweep_gamma_phi(
-            eps=eps, Delta=Delta, kappa=kap, Gamma=Gamma, n_pts=n_points,
+            eps=eps,
+            Delta=Delta,
+            kappa=kap,
+            Gamma=Gamma,
+            n_pts=n_points,
         )
         p = _find_peak(gp_arr, eta)
-        ax_r.plot(gp_arr, eta, lw=2.5 if eps == 5.0 else 1.8, color=col,
-                  label=f"{lbl}  ({p['enhancement_zero']:.1f}×)")
+        ax_r.plot(
+            gp_arr,
+            eta,
+            lw=2.5 if eps == 5.0 else 1.8,
+            color=col,
+            label=f"{lbl}  ({p['enhancement_zero']:.1f}×)",
+        )
         if p["interior_peak"]:
-            ax_r.plot(p["gp_star"], p["eta_star"], "o", color=col, ms=9,
-                      markeredgecolor="white", markeredgewidth=1.2, zorder=5)
+            ax_r.plot(
+                p["gp_star"],
+                p["eta_star"],
+                "o",
+                color=col,
+                ms=9,
+                markeredgecolor="white",
+                markeredgewidth=1.2,
+                zorder=5,
+            )
 
-    ax_r.axhline(0.9586, color="#F39C12", lw=1.5, ls=":", alpha=0.9,
-                 label="FMO-8 HEOM peak (4.12×)")
+    ax_r.axhline(
+        0.9586,
+        color="#F39C12",
+        lw=1.5,
+        ls=":",
+        alpha=0.9,
+        label="FMO-8 HEOM peak (4.12×)",
+    )
 
     ax_r.set_xscale("log")
     ax_r.set_xlabel(r"Dephasing Rate  $\gamma_\phi$  [$\Delta$]")
@@ -1057,16 +1292,26 @@ def _plot_sink_comparison(
     ax_r.legend(fontsize=9)
     ax_r.grid(True)
 
-    best_sink = _find_peak(*_sweep_gamma_phi(
-        5.0, Delta, 0.1, Gamma, n_pts=n_points,
-    ))
+    best_sink = _find_peak(
+        *_sweep_gamma_phi(
+            5.0,
+            Delta,
+            0.1,
+            Gamma,
+            n_pts=n_points,
+        )
+    )
     ax_r.text(
-        0.03, 0.96,
+        0.03,
+        0.96,
         f"Max enhancement: {best_sink['enhancement_zero']:.1f}×\n"
         f"Peak η = {best_sink['eta_star']:.3f}\n"
         f"Quantum Zeno η = {best_sink['eta_zeno']:.3f}",
-        transform=ax_r.transAxes, fontsize=12, fontweight="bold",
-        color="#C0392B", va="top",
+        transform=ax_r.transAxes,
+        fontsize=12,
+        fontweight="bold",
+        color="#C0392B",
+        va="top",
         bbox=dict(boxstyle="round,pad=0.4", facecolor="#FADBD8", alpha=0.9),
     )
 
@@ -1080,6 +1325,7 @@ def _plot_sink_comparison(
 # ═════════════════════════════════════════════════════════════════════════════
 #  Public API
 # ═════════════════════════════════════════════════════════════════════════════
+
 
 def run_validation(
     qd3set1_dir: str | Path,
@@ -1154,10 +1400,7 @@ def run_validation(
     asym_res = _enaqt_test(asym_records, "Asymmetric (ε = 1)")
 
     for res in [sym_res, asym_res]:
-        tag = (
-            "✓  BELL CURVE DETECTED"
-            if res["enaqt_detected"] else "✗  No bell curve"
-        )
+        tag = "✓  BELL CURVE DETECTED" if res["enaqt_detected"] else "✗  No bell curve"
         print(f"\n  [{res['label']}]  -- {tag}")
         print(f"    N trajectories:  {res['n_trajs']}")
         print(
@@ -1328,10 +1571,14 @@ def _compute_trace_distance_errors(
         td_vals = []
         for i in range(n_steps):
             rho_heom = _reconstruct_rho2x2(
-                traj[i, 1], traj[i, 4], traj[i, 2],
+                traj[i, 1],
+                traj[i, 4],
+                traj[i, 2],
             )
             rho_bloch = _reconstruct_rho2x2(
-                sol.y[0, i], sol.y[1, i], sol.y[2, i] + 1j * sol.y[3, i],
+                sol.y[0, i],
+                sol.y[1, i],
+                sol.y[2, i] + 1j * sol.y[3, i],
             )
             td_vals.append(_trace_distance(rho_heom, rho_bloch))
 
@@ -1353,7 +1600,9 @@ def _compute_trace_distance_errors(
         sym_res["td_mean"] = float(np.mean(sym_td_vals))
         sym_res["td_max"] = float(np.max(sym_td_vals))
         gp_b, td_b, td_s, _ = _log_bin(
-            np.array(sym_td_gp), np.array(sym_td_vals), n_bins=20,
+            np.array(sym_td_gp),
+            np.array(sym_td_vals),
+            n_bins=20,
         )
         sym_res["td_binned_gp"] = gp_b.tolist()
         sym_res["td_binned_mean"] = td_b.tolist()
@@ -1363,16 +1612,22 @@ def _compute_trace_distance_errors(
         asym_res["td_mean"] = float(np.mean(asym_td_vals))
         asym_res["td_max"] = float(np.max(asym_td_vals))
         gp_b, td_b, td_s, _ = _log_bin(
-            np.array(asym_td_gp), np.array(asym_td_vals), n_bins=20,
+            np.array(asym_td_gp),
+            np.array(asym_td_vals),
+            n_bins=20,
         )
         asym_res["td_binned_gp"] = gp_b.tolist()
         asym_res["td_binned_mean"] = td_b.tolist()
         asym_res["td_binned_std"] = td_s.tolist()
 
-    print(f"  Symmetric  (ε=0):  mean T = {sym_res.get('td_mean', 'N/A')}, "
-          f"max T = {sym_res.get('td_max', 'N/A')}")
-    print(f"  Asymmetric (ε=1):  mean T = {asym_res.get('td_mean', 'N/A')}, "
-          f"max T = {asym_res.get('td_max', 'N/A')}")
+    print(
+        f"  Symmetric  (ε=0):  mean T = {sym_res.get('td_mean', 'N/A')}, "
+        f"max T = {sym_res.get('td_max', 'N/A')}"
+    )
+    print(
+        f"  Asymmetric (ε=1):  mean T = {asym_res.get('td_mean', 'N/A')}, "
+        f"max T = {asym_res.get('td_max', 'N/A')}"
+    )
 
 
 def _enaqt_test(records: list[dict], label: str) -> dict[str, Any]:
@@ -1473,8 +1728,10 @@ def run_sink_analysis(
             sb_data = json.load(f)
         print(f"  Loaded: {sb_json}")
     else:
-        print(f"  WARNING: {sb_json} not found -- validation plots will lack "
-              "HEOM overlay")
+        print(
+            f"  WARNING: {sb_json} not found -- validation plots will lack "
+            "HEOM overlay"
+        )
 
     # -- Compute analytical yield curves ------------------------------------
     print("\n[2/5] Computing analytical ENAQT yield curves...")
@@ -1523,7 +1780,7 @@ def run_sink_analysis(
         f"{results['eps5_kap01']['enhancement_zero']:.2f}× enhancement  "
         "← EPIC!"
     )
-    print(f"  FMO-8 HEOM reference:            4.12× enhancement")
+    print("  FMO-8 HEOM reference:            4.12× enhancement")
     print(
         "\n  Why ε=5 >> FMO: larger site energy mismatch means coherent"
         "\n  tunneling is even LESS efficient, so noise helps MORE."
@@ -1549,10 +1806,12 @@ def run_sink_analysis(
         },
         "key_results": {
             "Bloch_eps1_kap01_enhancement": round(
-                results["eps1_kap01"]["enhancement_zero"], 3,
+                results["eps1_kap01"]["enhancement_zero"],
+                3,
             ),
             "Bloch_eps5_kap01_enhancement": round(
-                results["eps5_kap01"]["enhancement_zero"], 3,
+                results["eps5_kap01"]["enhancement_zero"],
+                3,
             ),
             "FMO8_HEOM_enhancement": 4.12,
             "conclusion": (
@@ -1589,9 +1848,9 @@ def run_sink_analysis(
         f"  Span (peak/Zeno): "
         f"{results['eps5_kap01']['eta_star'] / results['eps5_kap01']['eta_zeno']:.0f}×"
     )
-    print(f"\n  Output files:")
-    for p in [p1, p2, json_path]:
-        print(f"    {p.name}")
+    print("\n  Output files:")
+    for fpath in [p1, p2, json_path]:
+        print(f"    {fpath.name}")
     print("\n  Sink analysis complete!\n")
 
     out["json_path"] = str(json_path)

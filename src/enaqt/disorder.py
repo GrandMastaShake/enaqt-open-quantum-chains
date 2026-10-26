@@ -20,16 +20,13 @@ construction, Hamiltonians, yield computation).
 
 from __future__ import annotations
 
-import json
 import logging
-import os
 import time
 import warnings
 from pathlib import Path
-from typing import Any, Dict, List, Sequence, Tuple
+from typing import Any, Dict, List, Tuple
 
 import numpy as np
-from numpy.polynomial import polynomial as P
 from scipy import stats
 from scipy.optimize import differential_evolution
 
@@ -38,7 +35,6 @@ from enaqt.core import (
     analytical_yield,
     get_out_dir,
     hamiltonian_disordered,
-    hamiltonian_funnel,
     liouvillian_parts,
     save_json,
 )
@@ -129,9 +125,7 @@ def wilson_ci(k: int, n: int, confidence: float = 0.95) -> Tuple[float, float]:
     p_hat = k / n
     denom = 1 + z * z / n
     centre = p_hat + z * z / (2 * n)
-    margin = z * np.sqrt(
-        (p_hat * (1 - p_hat) + z * z / (4 * n)) / n
-    )
+    margin = z * np.sqrt((p_hat * (1 - p_hat) + z * z / (4 * n)) / n)
     lower = max(0.0, (centre - margin) / denom)
     upper = min(1.0, (centre + margin) / denom)
     return float(lower), float(upper)
@@ -254,7 +248,10 @@ def run_ensemble(
 
     logger.info(
         "Disorder ensemble: N=%d, %d seeds, sigma=%.2f, n_jobs=%d",
-        n, n_seeds, disorder_sigma, n_jobs,
+        n,
+        n_seeds,
+        disorder_sigma,
+        n_jobs,
     )
 
     # ── Parallel seed computation ──────────────────────────────────────────
@@ -268,7 +265,7 @@ def run_ensemble(
     )(joblib.delayed(_single_seed_disorder)(w) for w in work)
 
     # ── Gather per-seed arrays ─────────────────────────────────────────────
-    all_eta = np.stack([r["eta"] for r in results], axis=0)          # (n_seeds, n_gp)
+    all_eta = np.stack([r["eta"] for r in results], axis=0)  # (n_seeds, n_gp)
     enhancements = np.array([r["enhancement"] for r in results])
     peak_etas = np.array([r["eta_peak"] for r in results])
     zero_etas = np.array([r["eta_zero"] for r in results])
@@ -291,8 +288,16 @@ def run_ensemble(
     # ── Robust statistics for the enhancement distribution ─────────────────
     enh = enhancements[valid_enh]
     enh_median = float(np.median(enh)) if len(enh) else float("nan")
-    enh_mad = float(stats.median_abs_deviation(enh, scale="normal")) if len(enh) else float("nan")
-    enh_iqr = float(np.percentile(enh, 75) - np.percentile(enh, 25)) if len(enh) else float("nan")
+    enh_mad = (
+        float(stats.median_abs_deviation(enh, scale="normal"))
+        if len(enh)
+        else float("nan")
+    )
+    enh_iqr = (
+        float(np.percentile(enh, 75) - np.percentile(enh, 25))
+        if len(enh)
+        else float("nan")
+    )
     enh_p05 = float(np.percentile(enh, 5)) if len(enh) else float("nan")
     enh_p95 = float(np.percentile(enh, 95)) if len(enh) else float("nan")
     enh_mean = float(np.mean(enh)) if len(enh) else float("nan")
@@ -426,8 +431,12 @@ def _objective_function(
     float
         Value to *minimise* (negative of the quantity of interest).
     """
-    eps = np.append(energies, 0.0)          # pin sink site
-    H = np.diag(eps) + np.diag(np.ones(n - 1) * coupling, 1) + np.diag(np.ones(n - 1) * coupling, -1)
+    eps = np.append(energies, 0.0)  # pin sink site
+    H = (
+        np.diag(eps)
+        + np.diag(np.ones(n - 1) * coupling, 1)
+        + np.diag(np.ones(n - 1) * coupling, -1)
+    )
     L_base, L_deph = liouvillian_parts(H, sink_rate, fluo_rate)
 
     gp_range = np.logspace(-3, 2, n_gp)
@@ -592,7 +601,11 @@ def run_optimization(
 
         logger.info(
             "  width=±%2d: ratio=%.2fx yield=%.4f iters=%d stagnation=%s (%.1fs)",
-            width, enh_ratio, eta_peak, result_ratio.nit, stagnation,
+            width,
+            enh_ratio,
+            eta_peak,
+            result_ratio.nit,
+            stagnation,
             time.perf_counter() - t_w,
         )
 
@@ -602,16 +615,18 @@ def run_optimization(
     if ratios_finite:
         ref_ratio = np.median(ratios_finite)
         n_agree = sum(
-            1 for r in ratios_finite if abs(r - ref_ratio) / max(ref_ratio, 1e-12) < 0.10
+            1
+            for r in ratios_finite
+            if abs(r - ref_ratio) / max(ref_ratio, 1e-12) < 0.10
         )
         sensitivity = {
             "median_ratio_across_widths": float(ref_ratio),
             "fraction_agreeing_within_10pct": float(n_agree / len(ratios_finite)),
             "ratios": {str(w): r for w, r in zip(bound_widths, ratios)},
             "step_function_risk": (
-                "HIGH" if n_agree < len(ratios_finite) / 2 else
-                "MODERATE" if n_agree < len(ratios_finite) else
-                "LOW"
+                "HIGH"
+                if n_agree < len(ratios_finite) / 2
+                else "MODERATE" if n_agree < len(ratios_finite) else "LOW"
             ),
         }
     else:
@@ -636,7 +651,8 @@ def run_optimization(
 
     logger.info(
         "Optimization done in %.1f s — best ratio=%.2fx (width=±%d)",
-        time.perf_counter() - t_start, best_overall["ratio"],
+        time.perf_counter() - t_start,
+        best_overall["ratio"],
         best_overall.get("bound_width", -1),
     )
     return output
@@ -734,7 +750,6 @@ def _bca_bootstrap_median(
         boot_medians[b] = np.median(sample)
 
     # Acceleration factor (jackknife)
-    jack_idx = np.arange(n)
     jack_medians = np.empty(n)
     for i in range(n):
         jack_medians[i] = np.median(np.delete(data, i))
@@ -747,7 +762,7 @@ def _bca_bootstrap_median(
         return float(np.percentile(boot_medians, alpha * 100)), float(
             np.percentile(boot_medians, (1 - alpha) * 100)
         )
-    a_hat = num / (6 * den ** 1.5)
+    a_hat = num / (6 * den**1.5)
 
     # Bias-correction factor
     z0 = stats.norm.ppf(np.mean(boot_medians < np.median(data)))
@@ -772,11 +787,10 @@ def _bca_bootstrap_median(
 # ═══════════════════════════════════════════════════════════════════════════════
 
 
-def _plot_ensemble_curves(
-    data: Dict[str, Any], out_dir: Path, n: int
-) -> str:
+def _plot_ensemble_curves(data: Dict[str, Any], out_dir: Path, n: int) -> str:
     """Plot ensemble yield curves with robust-statistic bands."""
     import matplotlib
+
     matplotlib.use("Agg")
     import matplotlib.pyplot as plt
 
@@ -787,22 +801,38 @@ def _plot_ensemble_curves(
 
     # 5-95th percentile band
     ax.fill_between(
-        gp, curves["eta_p05"], curves["eta_p95"],
-        color="#3498DB", alpha=0.12, label="5-95th pctile",
+        gp,
+        curves["eta_p05"],
+        curves["eta_p95"],
+        color="#3498DB",
+        alpha=0.12,
+        label="5-95th pctile",
     )
     # IQR band
     ax.fill_between(
-        gp, curves["eta_p25"], curves["eta_p75"],
-        color="#3498DB", alpha=0.25, label="IQR (25-75th)",
+        gp,
+        curves["eta_p25"],
+        curves["eta_p75"],
+        color="#3498DB",
+        alpha=0.25,
+        label="IQR (25-75th)",
     )
     # Median line
     ax.plot(
-        gp, curves["eta_median"], lw=2.5, color="#2980B9",
+        gp,
+        curves["eta_median"],
+        lw=2.5,
+        color="#2980B9",
         label="Median",
     )
     # Mean line (for comparison)
     ax.plot(
-        gp, curves["eta_mean"], "--", lw=1.5, color="#8E44AD", alpha=0.7,
+        gp,
+        curves["eta_mean"],
+        "--",
+        lw=1.5,
+        color="#8E44AD",
+        alpha=0.7,
         label="Mean",
     )
 
@@ -824,11 +854,10 @@ def _plot_ensemble_curves(
     return str(path)
 
 
-def _plot_enhancement_distribution(
-    data: Dict[str, Any], out_dir: Path, n: int
-) -> str:
+def _plot_enhancement_distribution(data: Dict[str, Any], out_dir: Path, n: int) -> str:
     """Plot the enhancement distribution with robust-statistic annotations."""
     import matplotlib
+
     matplotlib.use("Agg")
     import matplotlib.pyplot as plt
 
@@ -839,6 +868,7 @@ def _plot_enhancement_distribution(
     fig, ax = plt.subplots(figsize=(8, 5))
 
     # Histogram with log bins if the range is large
+    bins: Any
     if len(enh) > 0 and enh.max() / max(enh.min(), 1e-12) > 100:
         bins = np.logspace(
             np.log10(max(enh.min(), 1e-3)),
@@ -853,17 +883,24 @@ def _plot_enhancement_distribution(
 
     # Reference lines
     ax.axvline(
-        stats_dict["enhancement_median"], color="#E74C3C", lw=2,
+        stats_dict["enhancement_median"],
+        color="#E74C3C",
+        lw=2,
         label=f"Median = {stats_dict['enhancement_median']:.2f}x",
     )
     ax.axvline(
-        stats_dict["enhancement_mean"], color="#2980B9", lw=1.5, ls="--",
+        stats_dict["enhancement_mean"],
+        color="#2980B9",
+        lw=1.5,
+        ls="--",
         label=f"Mean = {stats_dict['enhancement_mean']:.2f}x",
     )
     ax.axvspan(
         stats_dict["enhancement_median"] - stats_dict["enhancement_mad"],
         stats_dict["enhancement_median"] + stats_dict["enhancement_mad"],
-        color="#E74C3C", alpha=0.1, label=f"±MAD",
+        color="#E74C3C",
+        alpha=0.1,
+        label="±MAD",
     )
 
     ax.set_xlabel("ENAQT Enhancement (peak / zero-dephasing)")
@@ -883,11 +920,10 @@ def _plot_enhancement_distribution(
     return str(path)
 
 
-def _plot_optimization_results(
-    data: Dict[str, Any], out_dir: Path, n: int
-) -> str:
+def _plot_optimization_results(data: Dict[str, Any], out_dir: Path, n: int) -> str:
     """Plot energy profile + bound-sensitivity summary."""
     import matplotlib
+
     matplotlib.use("Agg")
     import matplotlib.pyplot as plt
 
@@ -895,19 +931,32 @@ def _plot_optimization_results(
     energies = np.array(optimal["energies"])
     sites = np.arange(1, n + 1)
 
-    fig, (ax_top, ax_bot) = plt.subplots(2, 1, figsize=(8, 8), gridspec_kw={"height_ratios": [1, 1]})
+    fig, (ax_top, ax_bot) = plt.subplots(
+        2, 1, figsize=(8, 8), gridspec_kw={"height_ratios": [1, 1]}
+    )
 
     # ── Top: optimal energy profile ────────────────────────────────────────
     ax_top.axhline(0, color="silver", lw=0.8, ls="--")
-    ax_top.plot(sites, energies, "o-", color="#2563EB", lw=2, ms=8, label="Optimal disorder")
-    ax_top.scatter([n], [0], s=120, marker="*", color="gold", zorder=5, label="Sink (site N)")
+    ax_top.plot(
+        sites, energies, "o-", color="#2563EB", lw=2, ms=8, label="Optimal disorder"
+    )
+    ax_top.scatter(
+        [n], [0], s=120, marker="*", color="gold", zorder=5, label="Sink (site N)"
+    )
 
     # Funnel reference
-    funnel_eps = np.array(
-        [(n - 1 - i) * 1.0 for i in range(n)]
-    )
+    funnel_eps = np.array([(n - 1 - i) * 1.0 for i in range(n)])
     funnel_eps[-1] = 0.0
-    ax_top.plot(sites, funnel_eps, "s--", color="#DC2626", lw=1.5, ms=6, alpha=0.7, label="Ordered funnel")
+    ax_top.plot(
+        sites,
+        funnel_eps,
+        "s--",
+        color="#DC2626",
+        lw=1.5,
+        ms=6,
+        alpha=0.7,
+        label="Ordered funnel",
+    )
 
     ax_top.set_xlabel("Site index")
     ax_top.set_ylabel("Site energy (Δ)")
@@ -928,12 +977,18 @@ def _plot_optimization_results(
     ax2 = ax_bot
     ax2_twin = ax2.twinx()
 
-    l1 = ax2.plot(widths, ratios, "o-", color="#2563EB", lw=2, ms=8, label="Enhancement ratio")[0]
-    l2 = ax2_twin.plot(widths, yields, "s--", color="#16A34A", lw=1.5, ms=6, label="Absolute yield")[0]
+    l1 = ax2.plot(
+        widths, ratios, "o-", color="#2563EB", lw=2, ms=8, label="Enhancement ratio"
+    )[0]
+    l2 = ax2_twin.plot(
+        widths, yields, "s--", color="#16A34A", lw=1.5, ms=6, label="Absolute yield"
+    )[0]
 
     # Highlight best
     best_w = optimal.get("bound_width", widths[0])
-    ax2.axvline(best_w, color="#DC2626", lw=1.5, ls=":", alpha=0.7, label=f"Best (±{best_w})")
+    ax2.axvline(
+        best_w, color="#DC2626", lw=1.5, ls=":", alpha=0.7, label=f"Best (±{best_w})"
+    )
 
     ax2.set_xlabel("Bound width (Δ)")
     ax2.set_ylabel("Enhancement ratio", color="#2563EB")
@@ -943,7 +998,9 @@ def _plot_optimization_results(
         f"Step-function risk: {data['bound_sensitivity']['step_function_risk']}  |  "
         f"Agreement: {data['bound_sensitivity']['fraction_agreeing_within_10pct']:.0%}"
     )
-    ax2.legend([l1, l2], ["Enhancement ratio", "Absolute yield"], fontsize=9, loc="upper left")
+    ax2.legend(
+        [l1, l2], ["Enhancement ratio", "Absolute yield"], fontsize=9, loc="upper left"
+    )
     ax2.grid(True, alpha=0.25)
     plt.tight_layout()
 

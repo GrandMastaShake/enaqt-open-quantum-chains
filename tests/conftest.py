@@ -5,13 +5,46 @@ These fixtures provide standard Hamiltonians and Liouvillians used across
 the 5 test groups, ensuring consistent test inputs and avoiding duplication.
 """
 
-import numpy as np
-import pytest
+import os
+
+# Small dense solves (<= 400 x 400) gain nothing from BLAS threading, and some
+# OpenBLAS builds slow down by orders of magnitude when oversubscribed.  These
+# must be set before numpy is first imported.
+os.environ.setdefault("OPENBLAS_NUM_THREADS", "1")
+os.environ.setdefault("OMP_NUM_THREADS", "1")
+os.environ.setdefault("MKL_NUM_THREADS", "1")
+os.environ.setdefault("MPLBACKEND", "Agg")
+
+import matplotlib  # noqa: E402
+
+matplotlib.use("Agg")
+
+import numpy as np  # noqa: E402
+import pytest  # noqa: E402
+
+
+def pytest_addoption(parser):
+    parser.addoption(
+        "--runslow",
+        action="store_true",
+        default=False,
+        help="also run tests marked @pytest.mark.slow",
+    )
+
+
+def pytest_collection_modifyitems(config, items):
+    if config.getoption("--runslow"):
+        return
+    skip_slow = pytest.mark.skip(reason="slow test: use --runslow to run")
+    for item in items:
+        if "slow" in item.keywords:
+            item.add_marker(skip_slow)
+
 
 # Physical constants used throughout the test suite
-DELTA = 1.0     # tunneling matrix element (energy unit)
-KAPPA = 0.1     # sink rate
-GAMMA = 0.01    # fluorescence recombination rate
+DELTA = 1.0  # tunneling matrix element (energy unit)
+KAPPA = 0.1  # sink rate
+GAMMA = 0.01  # fluorescence recombination rate
 
 
 @pytest.fixture
@@ -27,6 +60,7 @@ def fixture_2site_H():
            [0.5, -0.5]]
     """
     from enaqt.core import hamiltonian_2site
+
     return hamiltonian_2site(epsilon=1.0, delta=DELTA)
 
 
@@ -38,6 +72,7 @@ def fixture_3site_H():
     Nearest-neighbor coupling = Delta = 1.0.
     """
     from enaqt.core import hamiltonian_funnel
+
     return hamiltonian_funnel(n=3, bias=3.0, coupling=DELTA)
 
 
@@ -49,6 +84,7 @@ def fixture_liouvillian_2site():
     Used for testing Liouvillian properties without repeated construction.
     """
     from enaqt.core import hamiltonian_2site, liouvillian
+
     H = hamiltonian_2site(epsilon=1.0, delta=DELTA)
     return liouvillian(H, dephasing_rate=0.1, sink_rate=KAPPA, fluo_rate=GAMMA)
 
@@ -60,6 +96,7 @@ def fixture_liouvillian_2site_closed():
     With kappa=Gamma=0, the Liouvillian has a zero eigenvalue and trace is preserved.
     """
     from enaqt.core import hamiltonian_2site, liouvillian
+
     H = hamiltonian_2site(epsilon=1.0, delta=DELTA)
     return liouvillian(H, dephasing_rate=0.1, sink_rate=0.0, fluo_rate=0.0)
 
