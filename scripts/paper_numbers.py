@@ -103,6 +103,49 @@ def linfit(x, y):
     return float(a), float(b), float(r2)
 
 
+def refine_peak(H, lo=-3.0, hi=3.0, **kw) -> tuple[float, float]:
+    """Off-grid optimum of eta(gamma_phi): golden-section search in log10."""
+    from scipy.optimize import minimize_scalar
+
+    res = minimize_scalar(
+        lambda lg: -yields(H, [10.0**lg], **kw)[0],
+        bounds=(lo, hi),
+        method="bounded",
+        options=dict(xatol=1e-6),
+    )
+    return float(10.0**res.x), float(-res.fun)
+
+
+def boot_median_ci(x, n_boot: int = 2000, seed: int = 0) -> list[float]:
+    """95 % bootstrap confidence interval of the median."""
+    x = np.asarray(x, float)
+    rng = np.random.default_rng(seed)
+    meds = np.median(rng.choice(x, size=(n_boot, len(x)), replace=True), axis=1)
+    return [float(np.percentile(meds, 2.5)), float(np.percentile(meds, 97.5))]
+
+
+def localization_length(sigma: float, n_sites: int = 400_000, seed: int = 0) -> float:
+    """Band-centre (E = 0) localization length of the 1D Anderson chain with
+    Gaussian site disorder of standard deviation sigma (coupling 1), from the
+    Lyapunov exponent of the transfer-matrix product."""
+    eps = np.random.default_rng(seed).normal(0.0, sigma, n_sites)
+    psi_prev, psi, log_norm = 0.0, 1.0, 0.0
+    for e in eps:
+        psi_prev, psi = psi, -e * psi - psi_prev
+        a = abs(psi) + abs(psi_prev)
+        if a > 1e100 or a < 1e-100:
+            log_norm += np.log(a)
+            psi, psi_prev = psi / a, psi_prev / a
+    log_norm += np.log(abs(psi) + abs(psi_prev))
+    return float(n_sites / log_norm)
+
+
+def step_profile(n: int, b: float) -> list[float]:
+    """Two-level step: +b on the first (n-1)//2 sites, -b on the rest, trap at 0."""
+    k = (n - 1) // 2
+    return [b] * k + [-b] * (n - 1 - k) + [0.0]
+
+
 # ----------------------------------------------------------------------------
 # FMO (Adolphs & Renger 2006 site energies / couplings, cm^-1)
 # ----------------------------------------------------------------------------
@@ -178,6 +221,72 @@ def main(out_path: Path) -> dict:
         gp_star_r2=r2p,
         plateau_n12_20=[float(enh[n_arr >= 12].min()), float(enh[n_arr >= 12].max())],
     )
+    # gamma* against the nearest-neighbour mismatch eps_tot/(N-1)
+    mism = 5.0 / (n_arr - 1)
+    ref = [refine_peak(funnel(n)) for n in ns]
+    out["funnel_mismatch"] = dict(
+        grid_ratio_range=[float((gps / mism).min()), float((gps / mism).max())],
+        refined_gp_star={str(n): r[0] for n, r in zip(ns, ref)},
+        refined_ratio_range=[
+            float(min(r[0] / m for r, m in zip(ref, mism))),
+            float(max(r[0] / m for r, m in zip(ref, mism))),
+        ],
+        refined_vs_grid_eta_peak_max_rel=float(
+            max(
+                abs(r[1] - out["funnel"][str(n)]["eta_peak"]) / r[1]
+                for n, r in zip(ns, ref)
+            )
+        ),
+        # power law fitted to the mismatch itself, for comparison with Eq. (6)
+        mismatch_power=linfit(np.log(n_arr), np.log(mism))[0],
+    )
+    # how far eta(1e-3) already sits above the coherent limit
+    out["funnel_ref_factor"] = {
+        str(n): float(
+            out["funnel"][str(n)]["eta0_grid"] / out["funnel"][str(n)]["eta0_true"]
+        )
+        for n in [5, 10, 15, 20]
+    }
+    # flat chains and the uphill funnel (sign of the tilt) for comparison
+    out["flat_vs_funnel"] = {}
+    for n in [3, 4, 5, 7, 10, 15]:
+        up = chain([-(2.5 - j * 5.0 / (n - 1)) for j in range(n)])
+        out["flat_vs_funnel"][str(n)] = dict(
+            flat_eta_max=float(yields(chain([0.0] * n), GP300).max()),
+            funnel_eta_peak=float(yields(funnel(n), GP300).max()),
+            uphill_eta_peak=float(yields(up, GP300).max()),
+        )
+    # robustness of the funnel results to the trap and loss rates
+    rob_ns = [2, 3, 5, 7, 10, 15, 20]
+    out["funnel_robustness"] = {}
+    for kap in [0.01, 0.1, 1.0]:
+        for gam in [0.001, 0.01, 0.1]:
+            rows = {}
+            for n in rob_ns:
+                e = yields(funnel(n), GP300, kappa=kap, gamma=gam)
+                e0 = yields(funnel(n), [0.0], kappa=kap, gamma=gam)[0]
+                i = int(np.argmax(e))
+                rows[str(n)] = dict(
+                    gp_star=float(GP300[i]),
+                    eta_peak=float(e[i]),
+                    enh=float(e[i] / e[0]),
+                    enh_true0=float(e[i] / e0),
+                    interior=bool(0 < i < len(e) - 1),
+                )
+            g = np.array([rows[str(n)]["gp_star"] for n in rob_ns])
+            m = 5.0 / (np.array(rob_ns, float) - 1)
+            out["funnel_robustness"][f"kappa={kap},Gamma={gam}"] = dict(
+                rows=rows,
+                gp_over_mismatch_range=[float((g / m).min()), float((g / m).max())],
+            )
+    # total bias below the bandwidth 4 Delta
+    out["funnel_eps_tot"] = {}
+    for tot in [2.0, 5.0, 8.0]:
+        rows = {}
+        for n in [5, 10, 15, 20]:
+            H = chain([tot / 2 - j * tot / (n - 1) for j in range(n)])
+            rows[str(n)] = summarize(GP300, yields(H, GP300), yields(H, [0.0])[0])
+        out["funnel_eps_tot"][str(tot)] = rows
 
     # 3. FMO ------------------------------------------------------------------
     Hf = fmo_hamiltonian()
@@ -189,10 +298,40 @@ def main(out_path: Path) -> dict:
     # Ishizaki-Fleming high-T estimate of the pure-dephasing rate, in Delta_FMO units
     lam, wc_inv_fs, kT = 35.0, 50.0, 208.5  # cm^-1, fs, cm^-1 (300 K)
     gamma_c_cm = 1.0 / (wc_inv_fs * 1e-15 * 2.99792458e10 * 2 * np.pi)
-    out["fmo"]["dephasing_estimate_delta_units"] = float(
+    # 2 lambda kT / gamma_c is the dephasing rate contributed by one site's bath
+    # (an optical, site-ground coherence); a site-site coherence feels both
+    # sites' baths, so in the convention of Eq. (1) gamma_phi = 4 lambda kT / gamma_c.
+    out["fmo"]["dephasing_per_site_delta_units"] = float(
         2 * lam * kT / gamma_c_cm / 87.7
     )
-    out["fmo"]["delta_fmo_period_fs"] = float(1e15 / (87.7 * 2.99792458e10 * 2 * np.pi))
+    out["fmo"]["dephasing_estimate_delta_units"] = float(
+        4 * lam * kT / gamma_c_cm / 87.7
+    )
+    hbar_over_delta_fs = 1e15 / (87.7 * 2.99792458e10 * 2 * np.pi)
+    out["fmo"]["hbar_over_delta_fs"] = float(hbar_over_delta_fs)
+    # trap and loss rates in FMO units: kappa = 0.1 Delta, Gamma = 0.01 Delta
+    out["fmo"]["kappa_inv_ps"] = float(hbar_over_delta_fs / 0.1 / 1e3)
+    out["fmo"]["gamma_inv_ps"] = float(hbar_over_delta_fs / 0.01 / 1e3)
+    for label, sink in [("sink_bchl3", 2), ("sink_bchl7", 6)]:
+        # time-averaged coherent population on the trap site, no trap or loss
+        w, v = np.linalg.eigh(Hf)
+        out["fmo"][label]["coherent_avg_pop_on_trap"] = float(
+            np.sum(np.abs(v[0, :]) ** 2 * np.abs(v[sink, :]) ** 2)
+        )
+    out["fmo"]["biological_rates"] = {}
+    for k_ps, g_ns in [(1.0, 1.0), (4.0, 1.0)]:
+        kap = hbar_over_delta_fs / 1e3 * k_ps
+        gam = hbar_over_delta_fs / 1e6 * g_ns
+        g_star, e_pk = refine_peak(Hf, sink=2, kappa=kap, gamma=gam)
+        e_0 = yields(Hf, [0.0], sink=2, kappa=kap, gamma=gam)[0]
+        out["fmo"]["biological_rates"][f"kappa_{k_ps}ps-1_gamma_{g_ns}ns-1"] = dict(
+            kappa=float(kap),
+            gamma=float(gam),
+            gp_star=g_star,
+            eta_peak=e_pk,
+            eta0_true=float(e_0),
+            enh_true0=float(e_pk / e_0),
+        )
 
     # 4. disorder ensemble ----------------------------------------------------
     def dis_h(n, sigma, seed):
@@ -211,6 +350,7 @@ def main(out_path: Path) -> dict:
         ep = np.array([r["eta_peak"] for r in rows])
         e0 = np.array([r["eta0_grid"] for r in rows])
         enaqt = np.array([r["interior"] and r["enh"] > 1.01 for r in rows])
+        flat_max = float(yields(chain([0.0] * n), GP100).max())
         total_interior += int(enaqt.sum())
         total_real += len(rows)
         out["disorder"][str(n)] = dict(
@@ -227,6 +367,9 @@ def main(out_path: Path) -> dict:
             p75_eta_peak=float(np.percentile(ep, 75)),
             p25_eta0=float(np.percentile(e0, 25)),
             p75_eta0=float(np.percentile(e0, 75)),
+            median_ci=boot_median_ci(eg),
+            median_eta_peak_ci=boot_median_ci(ep),
+            frac_peak_above_flat=float(np.mean(ep > flat_max)),
         )
     out["disorder_total"] = dict(enaqt=total_interior, realizations=total_real)
 
@@ -253,6 +396,20 @@ def main(out_path: Path) -> dict:
     mask = sg_arr >= 1.0
     a, b, r2 = linfit(sg_arr[mask], np.log(med[mask]))
     out["sigma_fit"] = dict(log_median_slope=a, log_median_intercept=b, r2=r2)
+    out["localization_length"] = {
+        str(sg): localization_length(sg) for sg in [0.25, 0.5, 1.0, 1.5, 2.0, 3.0]
+    }
+    # disorder with the same rms nearest-neighbour step as the funnel
+    out["disorder_matched"] = {}
+    for n in [4, 7, 10, 15]:
+        sg = (5.0 / (n - 1)) / np.sqrt(2.0)
+        ep = [yields(dis_h(n, sg, s), GP100).max() for s in range(50)]
+        out["disorder_matched"][str(n)] = dict(
+            sigma=float(sg),
+            median_eta_peak=float(np.median(ep)),
+            p25=float(np.percentile(ep, 25)),
+            p75=float(np.percentile(ep, 75)),
+        )
 
     # 5. optimal-disorder configurations: absolute yields -----------------------
     opt = json.loads((ROOT / "enaqt_optimal_results.json").read_text())
@@ -269,13 +426,36 @@ def main(out_path: Path) -> dict:
             opt_eta0=float(yields(Ho, [1e-8])[0]),
             funnel_eta_peak=float(el.max()),
             funnel_eta0=float(yields(Hl, [1e-8])[0]),
+            opt_eta0_true=float(yields(Ho, [0.0])[0]),
+            funnel_eta0_true=float(yields(Hl, [0.0])[0]),
             opt_gp_star=float(gp30[int(np.argmax(eo))]),
+        )
+
+    # the ratio objective is unbounded: two-level steps of growing height
+    out["step_profiles"] = {}
+    for n in [5, 7]:
+        for b in [2.5, 5.0, 10.0, 20.0]:
+            H = chain(step_profile(n, b))
+            e = yields(H, GP300)
+            out["step_profiles"][f"N={n},B={b}"] = dict(
+                eta_peak=float(e.max()),
+                eta0_true=float(yields(H, [0.0])[0]),
+                enh_true0=float(e.max() / yields(H, [0.0])[0]),
+            )
+    # eta(1e-8) as a proxy for eta(0) in the optimizer section
+    out["optimal_proxy"] = {}
+    for key in ["7", "10"]:
+        Ho = chain(out["optimal"][key]["eps"])
+        out["optimal_proxy"][key] = dict(
+            eta_1e8=float(yields(Ho, [1e-8])[0]), eta_0=float(yields(Ho, [0.0])[0])
         )
 
     # 6. 2D lattice (reused from enaqt_2d_lattice.py output) ----------------------
     out["lattice_2d"] = json.loads((ROOT / "enaqt_2d_results.json").read_text())
-    for v in out["lattice_2d"].values():
+    for key, v in out["lattice_2d"].items():
         v.pop("disorder_all", None)
+        # nearest-neighbour mismatch along the diagonal gradient: 5 / (2 (L - 1))
+        v["mismatch"] = 5.0 / (2 * (int(key) - 1))
 
     out["runtime_s"] = time.time() - t0
     out_path.write_text(json.dumps(out, indent=1))
