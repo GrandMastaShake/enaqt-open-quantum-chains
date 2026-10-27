@@ -97,7 +97,7 @@ def fig_funnel(d, out):
         color=BLUE,
         mec="white",
         mew=0.8,
-        label=r"baseline $\gamma_\phi=10^{-3}\Delta$",
+        label=r"$\eta_{ref}=\eta(10^{-3}\Delta)$",
     )
     b.semilogy(
         ns,
@@ -107,7 +107,7 @@ def fig_funnel(d, out):
         color=ORANGE,
         mec="white",
         mew=0.8,
-        label=r"baseline $\gamma_\phi=0$",
+        label=r"$\eta_{ref}=\eta(0)$",
     )
     x = np.linspace(2, 10, 50)
     b.semilogy(
@@ -119,16 +119,24 @@ def fig_funnel(d, out):
         label=r"linear fit $N\leq10$",
     )
     b.set_xlabel("chain length N")
-    b.set_ylabel(r"enhancement $\eta_{peak}/\eta_{zero}$")
+    b.set_ylabel(r"enhancement $\eta_{peak}/\eta_{ref}$")
     b.legend(fontsize=7, loc="upper left")
     tag(b, "b")
-    c.loglog(ns, gps, "o", ms=4.5, color=BLUE, mec="white", mew=0.8)
+    c.loglog(ns, gps, "o", ms=4.5, color=BLUE, mec="white", mew=0.8, zorder=3)
+    c.loglog(
+        ns,
+        5.0 / (ns - 1),
+        "-",
+        color=ORANGE,
+        lw=1.2,
+        label=r"$\varepsilon_{tot}/(N-1)$",
+    )
     c.loglog(
         ns,
         f["gp_star_prefactor"] * ns ** f["gp_star_power"],
         "--",
         color=MUTED,
-        lw=1.2,
+        lw=1.0,
         label=rf"$\propto N^{{{f['gp_star_power']:.2f}}}$",
     )
     c.set_xticks([2, 5, 10, 20])
@@ -229,51 +237,34 @@ def fig_optimal(d, out):
         ms=3.5,
         color=ORANGE,
         lw=1.2,
-        label="funnel N=10",
+        label="unit-step funnel N=10",
     )
     a.set_xlabel("site index (sink = last)")
     a.set_ylabel(r"site energy [$\Delta$]")
-    a.legend(fontsize=7, loc="upper right")
+    a.set_ylim(-6.5, 14.5)
+    a.legend(fontsize=7, loc="upper right", ncol=2)
     tag(a, "a")
     ns = np.array(sorted(int(k) for k in d["optimal"]))
     get = lambda k: np.array([d["optimal"][str(x)][k] for x in ns])  # noqa: E731
-    b.semilogy(
-        ns,
-        get("opt_eta_peak"),
-        "o-",
-        ms=4,
-        color=BLUE,
-        label=r"optimised $\eta_{peak}$",
-    )
-    b.semilogy(
-        ns,
-        get("opt_eta0"),
-        "o--",
-        ms=4,
-        color=BLUE,
-        mfc="white",
-        label=r"optimised $\eta_{zero}$",
-    )
-    b.semilogy(
-        ns,
-        get("funnel_eta_peak"),
-        "s-",
-        ms=4,
-        color=ORANGE,
-        label=r"funnel $\eta_{peak}$",
-    )
-    b.semilogy(
-        ns,
-        get("funnel_eta0"),
-        "s--",
-        ms=4,
-        color=ORANGE,
-        mfc="white",
-        label=r"funnel $\eta_{zero}$",
-    )
+    conv = ns <= 10
+    for key, mk, col, lab in [
+        ("opt_eta_peak", "o-", BLUE, r"optimised $\eta_{peak}$"),
+        ("opt_eta0_true", "o--", BLUE, r"optimised $\eta(0)$"),
+        ("funnel_eta_peak", "s-", ORANGE, r"unit-step funnel $\eta_{peak}$"),
+        ("funnel_eta0_true", "s--", ORANGE, r"unit-step funnel $\eta(0)$"),
+    ]:
+        y = get(key)
+        open_mk = "white" if "eta0" in key else col
+        if key.startswith("opt"):
+            b.semilogy(ns[conv], y[conv], mk, ms=4, color=col, mfc=open_mk, label=lab)
+            b.semilogy(ns[~conv], y[~conv], "x", ms=5, color=col)
+        else:
+            b.semilogy(ns, y, mk, ms=4, color=col, mfc=open_mk, label=lab)
+    b.semilogy([], [], "x", color=MUTED, label="not converged")
     b.set_xlabel("chain length N")
     b.set_ylabel("absolute yield")
-    b.legend(fontsize=7, loc="lower left", ncol=2)
+    b.set_ylim(1e-15, 3)
+    b.legend(fontsize=6.5, loc="lower left", ncol=1, handlelength=2.2)
     tag(b, "b")
     fig.savefig(out / "fig4_optimal.png")
     plt.close(fig)

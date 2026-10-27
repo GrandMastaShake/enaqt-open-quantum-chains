@@ -1,9 +1,11 @@
 %% Environment-Assisted Quantum Transport in Open Quantum Chains:
-%% Length Scaling, Disorder Statistics, and the Limits of the Enhancement Ratio
+%% Optimal Dephasing, Disorder Statistics, and the Limits of the
+%% Enhancement Ratio
 %%
-%% Manuscript v5, October 2026.
-%% Every number in this file is produced by scripts/paper_numbers.py and every
-%% main-text figure by scripts/make_paper_figures.py (see README).
+%% Manuscript v6, October 2026.
+%% Numbers in Secs. III A-C, III E and III F are produced by
+%% scripts/paper_numbers.py and every main-text figure by
+%% scripts/make_paper_figures.py; see Appendix B for the remaining sources.
 %%
 %% Compile: pdflatex main && pdflatex main
 %% (the bibliography is inline, so no bibtex run is needed; arXiv builds it as is)
@@ -23,57 +25,61 @@
 \newcommand{\ket}[1]{|#1\rangle}
 \newcommand{\bra}[1]{\langle #1|}
 \newcommand{\etap}{\eta_\text{peak}}
-\newcommand{\etaz}{\eta_\text{zero}}
-\newcommand{\enh}{\etap/\etaz}
+\newcommand{\etar}{\eta_\text{ref}}
+\newcommand{\enh}{\etap/\etar}
 \newcommand{\half}{\tfrac{1}{2}}
+\newcommand{\dE}{\delta\varepsilon}
 
 \begin{document}
 
-\title{Environment-Assisted Quantum Transport in Open Quantum Chains:\\
-       Length Scaling, Disorder Statistics, and the Limits of the
+\title{Environment-Assisted Quantum Transport in Open Quantum Chains:\texorpdfstring{\\}{ }
+       Optimal Dephasing, Disorder Statistics, and the Limits of the
        Enhancement Ratio}
 
 \author{A.~Smith}
 \email{grandmasta1024@gmail.com}
 \affiliation{Ember Professional Research Division}
 
-\date{October 26, 2026}
+\date{October 27, 2026}
 
 % =============================================================================
 \begin{abstract}
 % =============================================================================
 We study environment-assisted quantum transport (ENAQT) in tight-binding chains
 with site-local pure dephasing, an irreversible trap and uniform excitation
-loss, computing the trapping yield $\eta(\gp)$ exactly within the Lindblad
-model from a single linear solve per parameter point.
-For a two-site donor--acceptor pair the dephasing enhancement
-$\enh$ grows with the energy bias, from $1.06$ at $\varepsilon=0.5\Delta$
-to $7.20$ at $\varepsilon=5\Delta$, with the optimal dephasing rate tracking
-the bias, $\gps\approx\varepsilon$.
-For linear energy funnels of $N=2$--$20$ sites the optimal rate falls as
-$\gps\propto N^{-1.20}$ while the peak yield falls from $0.80$ to $0.25$.
-The enhancement ratio itself is dominated by its reference point: measured
-against $\gp=10^{-3}\Delta$ it grows linearly up to $N=10$ and plateaus near
-$38$, whereas against the coherent limit $\gp=0$ it keeps growing to
-$1.3\times10^{3}$ at $N=20$.
-In an ensemble of 1{,}000 chains with Gaussian site disorder
-($\sigma=2\Delta$, $N=2$--$15$), $97.4\%$ of realizations show an interior
-yield maximum with at least $1\%$ gain.
-Median enhancement ratios exceed those of the ordered funnel at large $N$ only
-because disorder suppresses the coherent baseline; the absolute peak yield of
-disordered chains is lower at every $N$.
-Optimizing site energies for the largest ratio drives the chain to a two-level
-step profile whose peak yield is again below that of the funnel.
-For the seven-site FMO Hamiltonian with the trap at BChl~3 we find a
-$4.7$-fold enhancement at $\gps=1.9\,\Delta_\text{FMO}$, of the same order as a
-high-temperature estimate of the protein dephasing rate.
-We conclude that peak yield and optimal dephasing rate, not the enhancement
-ratio, are the robust figures of merit for noise-assisted transport.
+loss, and compute the trapping yield $\eta(\gp)$ exactly from one linear
+solve per parameter point.
+For linear energy funnels of $N=2$--$20$ sites at fixed total bias, the optimal
+dephasing rate equals the nearest-neighbour energy mismatch,
+$\gps=\varepsilon_\text{tot}/(N-1)$, to within $2\%$, the trapped-chain
+counterpart of the rule found for boundary-driven tilted chains; it maximizes
+the Haken--Strobl--Reineker hopping rate on every bond at once and holds to
+within $15\%$ over two decades of trap and loss rates.
+Because the dephasing acts at infinite temperature, the yield is exactly
+invariant under reversing the bias, and a flat chain, which shows no ENAQT, reaches a higher yield
+than any funnel: dephasing only repairs yield lost to energy mismatch.
+The enhancement ratio $\enh$ is set by its reference point and by the rates:
+for $\varepsilon_\text{tot}=5\Delta$, above the bandwidth, it plateaus at
+$36$--$38$ against $\gp=10^{-3}\Delta$ but reaches $1.3\times10^{3}$ at $N=20$
+against the coherent limit, whereas for $\varepsilon_\text{tot}=2\Delta$ it
+stays near $1.6$.
+In 1{,}000 chains with Gaussian site disorder ($\sigma=2\Delta$), $97.4\%$ show
+ENAQT and median ratios exceed the funnel's because the coherent baseline
+collapses; only 4 of these chains beat the flat chain, while weaker disorder of
+matched nearest-neighbour strength beats the funnel.
+Maximizing the ratio over site energies has no finite optimum: it drives the
+profile to the bounds of the search space and lowers the yield.
+For the seven-site FMO complex with the trap at BChl~3,
+$\gps=1.9\,\Delta_\text{FMO}$, of the order of a high-temperature estimate
+of the protein dephasing rate, while the $4.7$-fold enhancement
+falls to $1.14$ at biological trap and loss rates.
+Peak yield and optimal dephasing rate, not the enhancement ratio, are the
+robust figures of merit.
 \end{abstract}
 
 \keywords{environment-assisted quantum transport; dephasing; Lindblad master
-          equation; Anderson localization; energy funnel; FMO complex;
-          open quantum systems}
+          equation; Haken--Strobl--Reineker model; Anderson localization;
+          energy funnel; FMO complex; open quantum systems}
 
 \maketitle
 
@@ -93,39 +99,66 @@ freezes the dynamics (a quantum Zeno effect).
 In between, dephasing broadens site energies enough to bridge mismatches
 without freezing the motion, and the trapping yield $\eta(\gp)$ has an
 interior maximum.
+In the incoherent limit this is the classic Haken--Strobl--Reineker (HSR)
+picture of exciton hopping in a dephasing
+environment~\cite{haken1972,haken1973,moix2013}.
 
 The effect has been analyzed in light-harvesting models such as the
 Fenna--Matthews--Olson (FMO) complex~\cite{mohseni2008,plenio2008,rebentrost2009,caruso2009,wu2010,moix2011},
-in ordered chains~\cite{kassal2012}, in disordered
-chains~\cite{znidaric2013,moix2013,novo2016,zerahharush2020} and
-networks~\cite{walschaers2013,zerahharush2018,coates2023}, in tilted
-(Wannier--Stark) chains~\cite{jacob2024} and in strongly correlated boundary-driven
-systems~\cite{yeler2026}, and it has been observed in a ten-qubit trapped-ion
-network~\cite{maier2019}.
+in ordered systems~\cite{kassal2012}, in disordered
+chains~\cite{znidaric2013,moix2013,novo2016,zhang2017,zerahharush2020,coates2021}
+and networks~\cite{zerahharush2018,coates2023}, in tilted (Wannier--Stark)
+chains~\cite{burkhardt2013,jacob2024}, in lossy
+lattices~\cite{skalkin2025} and in strongly correlated boundary-driven
+systems~\cite{yeler2026}.
+It has been observed in an optical cavity network~\cite{viciani2015}, a
+photonic waveguide network~\cite{biggerstaff2016}, superconducting
+circuits~\cite{potocnik2018}, a ten-qubit trapped-ion
+network~\cite{maier2019} and a photonic simulation of the FMO
+complex~\cite{tang2024}.
 Coates, Lovett and Gauger showed that disordered networks can have more than
 one optimal dephasing regime~\cite{coates2023}; Zerah-Harush and Dubi traced
 ENAQT to a competition between dephasing-driven population equalization and the
 source--sink gradient~\cite{zerahharush2018} and studied how disorder and
 interactions modify it~\cite{zerahharush2020}; Jacob \textit{et al.}\ showed
 that in a boundary-driven tilted chain the current peaks when the dephasing rate
-matches the Bloch-oscillation frequency~\cite{jacob2024}.
+equals the nearest-neighbour energy difference, the Bloch-oscillation
+frequency, so that at fixed total tilt the optimum falls as $1/L$ with chain
+length~\cite{jacob2024}.
+Length laws for the optimal dephasing rate have also been found in disordered
+chains with a sink~\cite{zhang2017}, where it is tied to eigenstate
+localization~\cite{coates2021}, and in lossy lattices~\cite{skalkin2025}.
+Recent work optimizes site energies~\cite{lawrence2026} and site-dependent
+dephasing~\cite{lawrence2026b} for the absolute steady-state flux, and an
+evidence review of quantum effects in biology treats noise-assisted
+transport as a conditional design principle, to be tested by dephasing
+perturbations linked to functional yield~\cite{gassab2026}.
 
 A quantity that recurs throughout this literature, and in our own earlier
-drafts, is the enhancement ratio $\enh$: the peak yield divided by the yield at
-vanishing dephasing.
-The present paper makes three points about it, using a minimal and fully
-reproducible Lindblad model.
-(i)~For linear energy funnels we give length-scaling relations for the optimal
-dephasing rate and the peak yield, and we show that the apparent saturation of
-the enhancement ratio with $N$ is an artefact of evaluating $\etaz$ at small
-but finite dephasing.
-(ii)~For random site disorder we give ensemble statistics of the ratio, the
-peak yield and the baseline separately, and show that large ratios in
-disordered chains come from a collapsing coherent baseline rather than from
-better noise-assisted transport.
-(iii)~Optimizing site energies for the ratio produces a step-like landscape
-that is worse than a smooth funnel in absolute yield.
-We close with a seven-site FMO benchmark.
+drafts, is the enhancement ratio $\enh$: the peak yield divided by a reference
+yield at weak or vanishing dephasing.
+That such enhancements depend on the comparison regime has been noted
+before~\cite{kassal2013}, very large ratios have been reported where the
+undephased transport is already tiny~\cite{dwiputra2020}, and at realistic
+parameters the gain in photosynthetic complexes appears to be
+small~\cite{zerahharush2021}.
+Using a minimal and fully reproducible Lindblad model, we separate what is
+robust from what is not.
+(i)~In linear energy funnels the optimum of the trapping yield is fixed by the
+nearest-neighbour mismatch, $\gps=\varepsilon_\text{tot}/(N-1)$, the HSR
+resonance condition applied to every bond and the trapped-chain counterpart of
+the boundary-driven result of Ref.~\cite{jacob2024}; this rule survives large
+changes of the trap and loss rates.
+(ii)~The yield is exactly symmetric under reversal of the bias, and the flat
+chain outperforms every funnel; dephasing only recovers what the mismatch
+costs.
+(iii)~The enhancement ratio has no unique length dependence: its apparent
+saturation in funnels depends on the reference rate, the total bias and the
+loss rate, and its large values in disordered chains, or in landscapes
+optimized for it, come from a collapsing coherent baseline rather than from
+better transport.
+We close with a seven-site FMO benchmark, including biological trap and loss
+rates, and a first look at square lattices.
 
 % =============================================================================
 \section{\label{sec:model}Model and method}
@@ -143,7 +176,8 @@ matrix obeys
 \end{equation}
 with $P_j=\ket{j}\bra{j}$ and $\hbar=1$.
 The second term is site-local pure dephasing, which damps every coherence
-$\rho_{mn}$ ($m\neq n$) at rate $\gp$ and leaves populations unchanged.
+$\rho_{mn}$ ($m\neq n$) at rate $\gp$ and leaves populations unchanged; it is
+the HSR model at infinite temperature~\cite{haken1972,haken1973}.
 The third term is irreversible trapping from site $N$ at rate $\kappa$, and the
 last term is a uniform loss (recombination or fluorescence) at rate $\Gamma$.
 The excitation starts on site 1, $\rho(0)=P_1$.
@@ -173,16 +207,47 @@ For $\Gamma>0$ every eigenvalue of $\Lop$ has a negative real part, so
 one $N^2\times N^2$ linear solve per parameter point.
 Writing $\Lop=\Lop_\text{base}+\gp\Lop_\text{deph}$, a sweep over $\gp$
 reuses both matrices.
-All results except the site-energy optimization of Sec.~\ref{sec:optimal} take under a minute on one CPU core.
+
+\subsection{\label{sec:symmetry}Two exact properties}
+
+\textit{Bias reversal.}
+For a real Hamiltonian on a bipartite lattice (a chain or a square lattice),
+the yield is invariant under $\varepsilon_j\to-\varepsilon_j$ for all sites at
+once.
+Complex conjugation of Eq.~(\ref{eq:lindblad}) maps the evolution under $H$
+onto the evolution under $-H$, since the dephasing, trap and loss terms are
+real, and the gauge transformation $\ket{j}\to(-1)^j\ket{j}$ restores the sign
+of the couplings.
+Populations, and hence $\eta$, are unchanged by both operations.
+An uphill funnel and the corresponding downhill funnel therefore have
+identical yields at every $\gp$: infinite-temperature dephasing provides no
+downhill drift.
+The analogous statement for the boundary-driven current of a tilted chain is
+noted in Refs.~\cite{jacob2024,mendozaarenas2024}, and under HSR dephasing
+forward and backward hopping rates are equal~\cite{moix2013}.
+
+\textit{Incoherent hopping rate.}
+For two sites with mismatch $\dE$ and coupling $J$, adiabatic elimination of
+the coherence in Eq.~(\ref{eq:lindblad}) gives the HSR
+rate~\cite{haken1973,moix2013}
+\begin{equation}
+  k(\gp) = \frac{2J^2\gp}{\gp^2+\dE^2},
+  \label{eq:hsr_rate}
+\end{equation}
+symmetric in $\dE$ and maximal at $\gp=|\dE|$, where $k=J^2/|\dE|$.
+The elimination is controlled for $J\ll|\gp+i\dE|$; we use
+Eq.~(\ref{eq:hsr_rate}) only to interpret the exact results.
 
 \subsection{Hamiltonians and parameters}
 
 \textit{Chains.}
-Nearest-neighbour coupling $\Delta=1$ sets the energy and inverse-time unit.
+Nearest-neighbour coupling $\Delta=1$ sets the energy and inverse-time unit
+(bandwidth $4\Delta$).
 The linear energy funnel has site energies
 $\varepsilon_j=\varepsilon_\text{tot}/2-(j-1)\varepsilon_\text{tot}/(N-1)$
-with $\varepsilon_\text{tot}=5\Delta$, so the total donor--trap bias is fixed
-as $N$ grows.
+with $\varepsilon_\text{tot}=5\Delta$ unless stated otherwise, so the total
+donor--trap bias is fixed as $N$ grows and the nearest-neighbour mismatch is
+$\dE=\varepsilon_\text{tot}/(N-1)$.
 Disordered chains draw $\varepsilon_j\sim\mathcal{N}(0,\sigma^2)$
 independently.
 
@@ -195,17 +260,20 @@ The $N=2$ funnel of Sec.~\ref{sec:funnel} uses coupling $\Delta$ and therefore
 gives a different enhancement ($2.75$ rather than $7.20$ at
 $\varepsilon=5\Delta$).
 
-\textit{Rates.}
+\textit{Rates and grids.}
 Unless stated otherwise, $\kappa=0.1\Delta$ and $\Gamma=0.01\Delta$.
-One-dimensional sweeps use log-spaced $\gp\in[10^{-3},10^{3}]\Delta$
-(300 points for ordered chains, 100 points for disorder ensembles).
+One-dimensional sweeps use log-spaced $\gp\in[10^{-3},10^{3}]\Delta$ with
+300 points for ordered chains (grid step $4.7\%$) and 100 points for disorder
+ensembles (step $15\%$).
+For the funnels we also refine $\gps$ with a bounded scalar optimizer; the
+refined peak yields differ from the grid values by less than $10^{-4}$
+(relative).
 
 \textit{Enhancement ratio.}
-We define $\etap=\max_{\gp}\eta(\gp)$ on the grid and $\gps$ its location.
-Following our earlier scripts, $\etaz$ denotes the yield at the lowest grid
-point, $\gp=10^{-3}\Delta$, unless explicitly marked as the true coherent
-limit $\eta(\gp=0)$.
-Section~\ref{sec:funnel} shows that this choice matters.
+We define $\etap=\max_{\gp}\eta(\gp)$ and $\gps$ its location.
+The reference yield is $\etar=\eta(10^{-3}\Delta)$, the lowest grid point,
+unless explicitly marked as the true coherent limit $\eta(0)$;
+Sec.~\ref{sec:funnel} shows that this choice matters.
 A realization is counted as showing ENAQT when $\gps$ is an interior grid
 point and $\enh>1.01$.
 
@@ -221,27 +289,29 @@ Without bias the yield decreases monotonically with $\gp$: coherent transfer
 between degenerate sites is already efficient and dephasing only slows it.
 With bias, the coherent yield drops (the excitation oscillates with reduced
 amplitude $\propto\Delta^2/(\Delta^2+\varepsilon^2)$) while dephasing-assisted
-hopping restores it, and the interior maximum sits at
-$\gps\approx\varepsilon$.
-This is the familiar resonance condition: dephasing broadens each level by
-$\sim\gp$, and transfer is fastest when the broadening matches the
-mismatch~\cite{rebentrost2009,jacob2024}.
+hopping restores it, and the interior maximum sits close to the HSR resonance
+$\gp=\varepsilon$ of Eq.~(\ref{eq:hsr_rate}): the refined ratio
+$\gps/\varepsilon$ rises from $0.88$ at $\varepsilon=0.5\Delta$ to $0.99$ at
+$\varepsilon=5\Delta$, approaching one as the bias grows relative to the
+coupling, as in the two-site result of Ref.~\cite{jacob2024} and the
+line-broadening picture of Ref.~\cite{plenio2008}.
 At very strong dephasing all curves collapse onto the Zeno tail,
 $\eta(10^{3}\Delta)=0.043$.
 
 \begin{table}[htbp]
 \caption{\label{tab:two_site}Two-site model ($H=\tfrac{\varepsilon}{2}\sigma_z
-  +\tfrac{\Delta}{2}\sigma_x$, $\kappa=0.1\Delta$, $\Gamma=0.01\Delta$).}
+  +\tfrac{\Delta}{2}\sigma_x$, $\kappa=0.1\Delta$, $\Gamma=0.01\Delta$).
+  The enhancement is given against both references.}
 \begin{ruledtabular}
-\begin{tabular}{ccccc}
+\begin{tabular}{cccccc}
 $\varepsilon$ [$\Delta$] & $\gps$ [$\Delta$] & $\etap$ & $\eta(\gp=0)$
-  & $\enh$ \\
+  & $\etap/\eta(10^{-3}\Delta)$ & $\etap/\eta(0)$ \\
 \hline
-0.0 & ---  & 0.832 & 0.832 & 1.00 \\
-0.5 & 0.45 & 0.818 & 0.773 & 1.06 \\
-1.0 & 0.93 & 0.804 & 0.638 & 1.26 \\
-2.0 & 1.95 & 0.776 & 0.375 & 2.05 \\
-5.0 & 4.92 & 0.704 & 0.097 & 7.20 \\
+0.0 & ---  & 0.832 & 0.832 & 1.00 & 1.00 \\
+0.5 & 0.45 & 0.818 & 0.773 & 1.06 & 1.06 \\
+1.0 & 0.93 & 0.804 & 0.638 & 1.26 & 1.26 \\
+2.0 & 1.95 & 0.776 & 0.375 & 2.05 & 2.07 \\
+5.0 & 4.92 & 0.704 & 0.096 & 7.20 & 7.30 \\
 \end{tabular}
 \end{ruledtabular}
 \end{table}
@@ -272,7 +342,7 @@ $\kappa$ [$\Delta$] & $\gps$ [$\Delta$] & $\etap$ & $\enh$
 
 \begin{figure}[htbp]
 \centering
-\includegraphics[width=\textwidth]{fig1_two_site.png}
+\includegraphics[width=\columnwidth]{fig1_two_site.png}
 \caption{\label{fig:two_site}
   Two-site yield.
   (a)~$\eta(\gp)$ for biases $\varepsilon=0,1,2,5\Delta$ ($\kappa=0.1\Delta$);
@@ -287,80 +357,136 @@ $\kappa$ [$\Delta$] & $\gps$ [$\Delta$] & $\etap$ & $\enh$
 Figure~\ref{fig:funnel} and Table~\ref{tab:funnel} summarize funnels of
 $N=2$--$20$ sites at fixed total bias $\varepsilon_\text{tot}=5\Delta$.
 Every funnel shows an interior yield maximum.
-Two quantities behave simply with length.
-The optimal dephasing rate follows
+
+\textit{The mismatch rule.}
+The optimal dephasing rate equals the nearest-neighbour mismatch,
 \begin{equation}
-  \gps \approx 9.2\,\Delta\;N^{-1.20}\qquad (N=2\text{--}20,\;R^2=0.992),
-  \label{eq:gp_scaling}
+  \gps \simeq \dE = \frac{\varepsilon_\text{tot}}{N-1},
+  \label{eq:mismatch_rule}
 \end{equation}
-consistent with the resonance picture of Sec.~\ref{sec:two_site}: the
-site-to-site mismatch is $\varepsilon_\text{tot}/(N-1)$, and $\gps$ follows it
-with a somewhat steeper exponent than the $N^{-1}$ that mismatch alone would
-give.
+with the refined $\gps/\dE$ between $0.988$ and $1.018$ for $N=2$--$20$
+(grid values $0.975$--$1.032$; Fig.~\ref{fig:funnel}(c)).
+Because every bond of a linear funnel has the same mismatch,
+Eq.~(\ref{eq:hsr_rate}) is maximized on all bonds simultaneously at
+$\gp=\dE$, which is also the Bloch frequency of the tilted chain.
+This is the rule derived by Jacob \textit{et al.}\ for the boundary-driven
+current, $\gamma_\text{max}\simeq U$ with $U$ the nearest-neighbour energy
+difference~\cite{jacob2024}, here confirmed quantitatively for the trapping
+yield of chains with uniform loss; Moix \textit{et al.}\ used the same
+Lorentzian rate to predict an optimal dephasing equal to the disorder width
+for diffusion in disordered chains~\cite{moix2013}.
+A power-law fit over the same range gives $\gps\approx9.2\,\Delta\,N^{-1.20}$
+($R^2=0.992$), but this exponent only describes the curvature of
+$\varepsilon_\text{tot}/(N-1)$ on a log-log plot over $N=2$--$20$ (a power
+fit of the mismatch itself gives $-1.22$); it carries no separate physics.
+
+\textit{Peak yield, bias symmetry and the flat chain.}
 The peak yield falls steadily, from $0.80$ at $N=2$ to $0.25$ at $N=20$,
 because the transit time grows with $N$ while the loss rate $\Gamma$ is fixed.
+Reversing the funnel into an uphill ramp leaves every yield unchanged, as
+required by Sec.~\ref{sec:symmetry}.
+The flat chain ($\varepsilon_j=0$) shows no ENAQT: its yield decreases
+monotonically with $\gp$ at the default rates and over
+$\kappa=0.01$--$100\,\Delta$ and $\Gamma=10^{-3}$--$10^{-1}\Delta$ for
+$N=3$--$7$.
+This is the end-to-end geometry, with the excitation starting at the end
+opposite the trap, for which dephasing was found numerically not to help by
+Plenio and Huelga~\cite{plenio2008} and explained by Kassal and
+Aspuru-Guzik in the weak trapping and loss limit~\cite{kassal2012}; in other
+source--trap geometries ordered systems can show ENAQT~\cite{kassal2012}.
+Its coherent yield is nevertheless higher than the funnel's peak yield at
+every length we checked: $0.773$ versus $0.722$ at $N=3$, $0.625$ versus
+$0.518$ at $N=7$, and $0.461$ versus $0.320$ at $N=15$.
+In this model, then, dephasing does not give the funnel a transport advantage;
+it recovers part of the yield that the energy mismatch removes.
+A downhill preference would require thermal relaxation, which pure dephasing
+does not contain.
 
-The enhancement ratio does not have a unique scaling law.
-Measured against $\gp=10^{-3}\Delta$ it grows almost linearly for $N\le10$,
+\textit{The enhancement ratio.}
+Measured against $\gp=10^{-3}\Delta$ the ratio grows almost linearly for
+$N\le10$,
 \begin{equation}
   \enh \approx 3.85\,N - 4.9\qquad (N\le 10,\;R^2=0.996),
 \end{equation}
-then levels off at $36$--$38$ for $N=12$--$20$.
+then plateaus at $36$--$38$ for $N=12$--$20$.
 Measured against the true coherent limit, the same data give
-$\eta_\text{peak}/\eta(0)=107$ at $N=10$, $407$ at $N=15$ and $1.3\times10^{3}$
+$\etap/\eta(0)=107$ at $N=10$, $407$ at $N=15$ and $1.3\times10^{3}$
 at $N=20$ (Fig.~\ref{fig:funnel}(b)).
 The plateau therefore does not reflect a limit on noise-assisted transport;
 it appears because, in long funnels, even $\gp=10^{-3}\Delta$ already lifts the
-yield well above its coherent value (by a factor of $43$ at $N=15$).
-The ratio is controlled by how small the baseline is, and the baseline depends
-on where it is evaluated.
+yield well above its coherent value, by a factor of $3.3$ at $N=10$, $10.7$
+at $N=15$ and $35$ at $N=20$.
 
 \begin{table}[htbp]
 \caption{\label{tab:funnel}Linear energy funnels ($\varepsilon_\text{tot}=5\Delta$,
   $\kappa=0.1\Delta$, $\Gamma=0.01\Delta$).
+  $\gps$ is the grid optimum and $\gps/\dE$ the refined optimum divided by the
+  nearest-neighbour mismatch $\dE=\varepsilon_\text{tot}/(N-1)$.
   Two enhancement ratios are given: against $\eta(10^{-3}\Delta)$ and against
   the coherent limit $\eta(0)$.}
 \begin{ruledtabular}
-\begin{tabular}{cccccc}
-$N$ & $\gps$ [$\Delta$] & $\etap$ & $\eta(0)$ & $\etap/\eta(10^{-3})$
-  & $\etap/\eta(0)$ \\
+\begin{tabular}{ccccccc}
+$N$ & $\gps$ [$\Delta$] & $\gps/\dE$ & $\etap$ & $\eta(0)$
+  & $\etap/\eta(10^{-3}\Delta)$ & $\etap/\eta(0)$ \\
 \hline
- 2 & 4.92 & 0.797 & 0.286                 & 2.75 & 2.78 \\
- 3 & 2.46 & 0.722 & 0.105                 & 6.27 & 6.84 \\
- 5 & 1.23 & 0.605 & 0.032                 & 14.3 & 19.0 \\
- 7 & 0.81 & 0.518 & 0.013                 & 22.8 & 41.4 \\
-10 & 0.56 & 0.424 & $3.9\times10^{-3}$    & 32.4 & 107  \\
-15 & 0.35 & 0.320 & $7.9\times10^{-4}$    & 37.9 & 407  \\
-20 & 0.27 & 0.254 & $1.9\times10^{-4}$    & 37.3 & 1314 \\
+ 2 & 4.92 & 0.988 & 0.797 & 0.286                 & 2.75 & 2.78 \\
+ 3 & 2.46 & 0.988 & 0.722 & 0.105                 & 6.27 & 6.84 \\
+ 5 & 1.23 & 0.992 & 0.605 & 0.032                 & 14.3 & 19.0 \\
+ 7 & 0.81 & 0.997 & 0.518 & 0.013                 & 22.8 & 41.4 \\
+10 & 0.56 & 1.004 & 0.424 & $3.9\times10^{-3}$    & 32.4 & 107  \\
+15 & 0.35 & 1.012 & 0.320 & $7.9\times10^{-4}$    & 37.9 & 407  \\
+20 & 0.27 & 1.018 & 0.254 & $1.9\times10^{-4}$    & 37.3 & 1314 \\
 \end{tabular}
 \end{ruledtabular}
 \end{table}
 
-\textit{Flat chains.}
-With all site energies equal ($N=3,7,15$), the yield decreases monotonically
-with $\gp$ and no ENAQT occurs, in agreement with the result that
-dephasing cannot enhance end-to-end transport in a uniform
-chain~\cite{kassal2012}.
+\textit{Robustness.}
+We repeated the funnel scan on a $3\times3$ grid of trap and loss rates,
+$\kappa\in\{0.01,0.1,1\}\Delta$ and $\Gamma\in\{10^{-3},10^{-2},10^{-1}\}\Delta$.
+The mismatch rule survives with $\gps/\dE=0.85$--$1.09$ over all nine
+combinations; the largest deviations occur for the fast trap $\kappa=\Delta$,
+which broadens the last site and shifts $\gps$ downward.
+The enhancement ratio does not: at $N=20$ it ranges from $4.7$
+($\kappa=\Delta$, $\Gamma=10^{-3}\Delta$) to $91$ ($\kappa=0.01\Delta$,
+$\Gamma=0.1\Delta$) against $\gp=10^{-3}\Delta$.
+The plateau also depends on the total bias.
+For $\varepsilon_\text{tot}=2\Delta$, below the bandwidth $4\Delta$, the ratio
+is only $1.53$--$1.66$ for $N=5$--$20$ ($1.60$--$1.73$ against $\eta(0)$),
+whereas for $\varepsilon_\text{tot}=8\Delta$ it reaches $843$ against
+$10^{-3}\Delta$ and $6.3\times10^{8}$ against $\eta(0)$ at $N=20$.
+A natural reading is Wannier--Stark localization~\cite{wannier1960}: the
+eigenstates of a chain with field step $\dE$ extend over about
+$4\Delta/\dE=4(N-1)\Delta/\varepsilon_\text{tot}$ sites, which covers the
+whole chain only when $\varepsilon_\text{tot}\lesssim4\Delta$.
+Above that bias coherent transfer from site 1 to the trap is blocked and the
+baseline collapses; below it the baseline stays finite and the ratio is
+modest.
+The value $36$--$38$ is therefore a property of $\varepsilon_\text{tot}=5\Delta$
+and the default rates, not of funnels in general.
 
 \begin{figure*}[htbp]
 \centering
 \includegraphics[width=\textwidth]{fig2_funnel.png}
 \caption{\label{fig:funnel}
   Linear energy funnels ($\varepsilon_\text{tot}=5\Delta$).
-  (a)~Yield $\eta(\gp)$ for $N=2$--$20$.
-  (b)~Enhancement ratio against $\gp=10^{-3}\Delta$ (circles; dashed line is
-  the linear fit for $N\le10$) and against $\gp=0$ (triangles).
-  (c)~Optimal dephasing rate with the power-law fit of
-  Eq.~(\ref{eq:gp_scaling}).}
+  (a)~Yield $\eta(\gp)$ for $N=2,3,5,7,10,15,20$.
+  (b)~Enhancement ratio against $\etar=\eta(10^{-3}\Delta)$ (circles; dashed
+  line is the linear fit for $N\le10$) and against $\etar=\eta(0)$
+  (triangles).
+  (c)~Optimal dephasing rate with the nearest-neighbour mismatch
+  $\varepsilon_\text{tot}/(N-1)$ (solid) and the power-law fit (dashed).}
 \end{figure*}
 
 % -----------------------------------------------------------------------------
 \subsection{\label{sec:disorder}Random site disorder}
 % -----------------------------------------------------------------------------
 
-We drew 100 disorder realizations (seeds $0$--$99$) with $\sigma=2\Delta$ for
-each $N\in\{2,3,4,5,6,7,8,10,12,15\}$, 1{,}000 chains in total.
-Table~\ref{tab:disorder} and Fig.~\ref{fig:disorder} give the statistics.
+We drew 100 disorder realizations with $\sigma=2\Delta$ for each
+$N\in\{2,3,4,5,6,7,8,10,12,15\}$, 1{,}000 chains in total; the same seeds
+($0$--$99$) are used at every $N$.
+Table~\ref{tab:disorder} and Fig.~\ref{fig:disorder} give the statistics;
+confidence intervals (CI) for medians are $95\%$ bootstrap intervals from
+2{,}000 resamples.
 
 \textit{Prevalence.}
 An interior maximum with at least $1\%$ gain occurs in 974 of the 1{,}000
@@ -371,30 +497,48 @@ degenerate case of Sec.~\ref{sec:two_site}, and is $98$--$100\%$ for
 $N\ge4$.
 So ENAQT is the typical behaviour of a disordered chain with a trap, not a
 fine-tuned one, in line with earlier
-studies~\cite{moix2013,walschaers2013,novo2016,zerahharush2020}.
+studies~\cite{moix2013,novo2016,zhang2017,zerahharush2020,coates2021}.
 
 \textit{Ratio versus yield.}
 The median ratio grows quickly with $N$ and exceeds the ordered funnel's ratio
-(against $\gp=10^{-3}\Delta$) from $N=10$ on: $35.7$ versus $32.4$ at $N=10$,
-and $244$ versus $37.9$ at $N=15$.
+(against $\gp=10^{-3}\Delta$) from $N=10$ on: $35.7$ (CI $21.6$--$48.1$)
+versus $32.4$ at $N=10$, and $244$ (CI $163$--$426$) versus $37.9$ at $N=15$.
 The distribution is strongly right-skewed (mean $6.9\times10^{3}$ at $N=15$,
 maximum $2.4\times10^{5}$).
 Figure~\ref{fig:disorder}(b) shows where the large ratios come from: the median
 peak yield decreases gently with $N$, from $0.82$ to $0.13$, while the median
-baseline collapses from $0.66$ to $5.5\times10^{-4}$, as expected once the
-localization length becomes shorter than the chain.
-The disordered chains do not transport better than the funnel.
-Their median peak yield is below the funnel's at every $N$ ($0.43$ versus
-$0.52$ at $N=7$; $0.13$ versus $0.32$ at $N=15$), and measured against the true
-coherent limit the funnel's ratio is also the larger one ($107$ versus a median
-of $41$ at $N=10$, $407$ versus $354$ at $N=15$).
+baseline collapses from $0.66$ to $5.5\times10^{-4}$.
+This is the baseline effect behind the early observation that the average
+improvement is larger the more static disorder there
+is~\cite{rebentrost2009}.
+At this disorder strength the median peak yield is slightly above the funnel's
+for $N=2$ and $3$ ($0.82$ versus $0.80$, $0.74$ versus $0.72$) and below it
+for $N\ge4$ ($0.43$ versus $0.52$ at $N=7$; $0.13$ versus $0.32$ at $N=15$).
+Measured against the true coherent limit the funnel's ratio is the larger one
+at $N=10$ and $15$ ($107$ versus a median of $41$, and $407$ versus $354$).
+Against the flat chain the comparison is one-sided: only 4 of the 1{,}000
+disordered chains, all at $N=3$, reach a higher peak yield than the flat chain
+of the same length.
+
+\textit{Matched disorder.}
+The comparison with the funnel depends on the disorder strength.
+Choosing $\sigma=\dE/\sqrt{2}$, so that the root-mean-square difference
+between neighbouring site energies equals the funnel's mismatch
+$\dE=5\Delta/(N-1)$, the median peak yield (50 realizations per $N$) exceeds
+the funnel's at every length tested: $0.683$ versus $0.658$ at $N=4$,
+$0.556$ versus $0.518$ at $N=7$, $0.479$ versus $0.424$ at $N=10$ and
+$0.418$ versus $0.320$ at $N=15$.
+A random landscape with the same typical step as the funnel, but no net
+bias, transports better than the funnel, consistent with the bias symmetry of
+Sec.~\ref{sec:symmetry}: the net drop of the funnel is a cost, not a help.
 
 \begin{table}[htbp]
 \caption{\label{tab:disorder}Disorder ensemble ($\sigma=2\Delta$, 100
   realizations per $N$, $\kappa=0.1\Delta$, $\Gamma=0.01\Delta$).
   ENAQT: fraction with an interior maximum and $\enh>1.01$.
   Ratios are against $\gp=10^{-3}\Delta$; IQR is the interquartile range.
-  The funnel columns repeat Table~\ref{tab:funnel}.}
+  The funnel columns are the ordered funnel at the same $N$, computed as in
+  Table~\ref{tab:funnel}.}
 \begin{ruledtabular}
 \begin{tabular}{cccccc}
 $N$ & ENAQT & median $\enh$ (IQR) & median $\etap$ & funnel $\enh$
@@ -403,7 +547,7 @@ $N$ & ENAQT & median $\enh$ (IQR) & median $\etap$ & funnel $\enh$
  2 & 89\%  & 1.23 (1.06--1.51) & 0.82 & 2.75 & 0.80 \\
  3 & 92\%  & 2.27 (1.15--3.75) & 0.74 & 6.27 & 0.72 \\
  4 & 98\%  & 3.55 (1.81--6.27) & 0.65 & 10.0 & 0.66 \\
- 5 & 100\% & 5.51 (2.39--13.0) & 0.58 & 14.3 & 0.61 \\
+ 5 & 100\% & 5.51 (2.39--13.0) & 0.58 & 14.3 & 0.60 \\
  6 & 98\%  & 9.88 (3.00--34.5) & 0.50 & 18.7 & 0.56 \\
  7 & 100\% & 8.92 (3.71--49.1) & 0.43 & 22.8 & 0.52 \\
  8 & 99\%  & 13.8 (4.50--58.9) & 0.38 & 26.6 & 0.48 \\
@@ -425,10 +569,16 @@ Fig.~\ref{fig:disorder}(c)).
 We do not attach a mechanism to this exponential form: it describes the range
 studied, and the baseline it reflects is set jointly by localization, the
 trap and the loss rate.
-(In one dimension the localization length at weak disorder scales as
-$\xi\propto\Delta^2/\sigma^2$; for $\sigma\gtrsim\Delta$ it is of the order of
-a few sites, so the chains of Fig.~\ref{fig:disorder}(c) are strongly
-localized.)
+For orientation, the band-centre localization length of the infinite chain,
+from a transfer-matrix calculation with $4\times10^{5}$ sites, is
+$\xi=139$ sites at $\sigma=0.25\Delta$, $35$ at $0.5\Delta$, $9.2$ at
+$\Delta$, $4.4$ at $1.5\Delta$, $2.8$ at $2\Delta$ and $1.6$ at $3\Delta$.
+At weak disorder this follows $\xi\approx8.75\,\Delta^2/\sigma^2$, the
+Gaussian equivalent of the band-centre result $105\,\Delta^2/W^2$ for box
+disorder of width $W$~\cite{kappus1981}.
+The $N=7$ chains are thus shorter than $\xi$ for $\sigma\le\Delta$ and several
+localization lengths long for $\sigma\ge2\Delta$ ($7/\xi\approx2.5$ at
+$2\Delta$).
 
 \begin{figure*}[htbp]
 \centering
@@ -438,7 +588,7 @@ localized.)
   (a)~Median enhancement ratio (shaded: interquartile range) for $\sigma=2\Delta$
   versus $N$, with the ordered funnel for comparison (both against
   $\gp=10^{-3}\Delta$).
-  (b)~Median peak yield $\etap$ and baseline $\etaz$ for the same ensemble:
+  (b)~Median peak yield $\etap$ and baseline $\etar$ for the same ensemble:
   the ratio grows because the baseline collapses.
   (c)~Median ratio versus disorder strength at $N=7$ with the exponential fit
   for $\sigma\ge\Delta$.}
@@ -449,38 +599,82 @@ localized.)
 % -----------------------------------------------------------------------------
 
 To see what the ratio rewards, we maximized $\enh$ over the site energies
-$\varepsilon_1,\ldots,\varepsilon_{N-1}\in[-5\Delta,5\Delta]$ with
-$\varepsilon_N=0$, using differential evolution
-(\texttt{scipy.optimize.differential\_evolution}, population $8(N-1)$,
-100 generations, L-BFGS-B polish), with $\etap$ taken over 30 log-spaced points
-in $[10^{-3},10^{2}]\Delta$ and $\etaz=\eta(10^{-8}\Delta)$.
+$\varepsilon_1,\ldots,\varepsilon_{N-1}$, each restricted to
+$[-5\Delta,5\Delta]$, with $\varepsilon_N=0$.
+We used the differential-evolution routine of SciPy (one run with seed 42,
+population $8(N-1)$, 100 generations, L-BFGS-B polish), with $\etap$ taken
+over 30 log-spaced points in $[10^{-3},10^{2}]\Delta$ and
+$\etar=\max[\eta(10^{-8}\Delta),10^{-12}]$.
 
-For $N\le10$ the optimizer converges to a two-level step profile at the bounds:
-the first half of the chain at $+5\Delta$, the second half at $-5\Delta$,
-and the trap at $0$ (Fig.~\ref{fig:optimal}(a)); for $N=12$ and $15$ it returns
-irregular profiles that are not converged.
-These landscapes achieve enormous ratios ($87$ at $N=3$, $9.0\times10^{3}$ at
+\textit{What the optimizer returns.}
+For $N=5$, $7$ and $10$ the result is a two-level step at the bounds: the
+first $\lfloor(N-1)/2\rfloor$ sites at $+5\Delta$, the following
+$\lfloor(N-1)/2\rfloor$ at $-5\Delta$, and the trap at $0$ (for $N=10$ the
+ninth site sits at $-0.28\Delta$; Fig.~\ref{fig:optimal}(a)).
+For $N=3$ the profile is reversed, $(-5,+5,0)\Delta$.
+For $N=12$ and $15$ the profiles are irregular; with a single run and no
+convergence check we treat them as not converged.
+These landscapes achieve very large ratios ($87$ at $N=3$, $9.0\times10^{3}$ at
 $N=5$, $8.0\times10^{5}$ at $N=7$) by making coherent transfer almost
-impossible: $\etaz$ is $7\times10^{-3}$ at $N=3$ and $4\times10^{-7}$ at $N=7$.
-Their peak yields are, however, lower than those of a funnel with
-$\varepsilon_j=(N-j)\Delta$ at every $N$ (Fig.~\ref{fig:optimal}(b)):
-$0.65$ versus $0.75$ at $N=3$, $0.32$ versus $0.50$ at $N=7$, and $0.21$
-versus $0.37$ at $N=10$.
-For $N\ge10$ both baselines fall below $10^{-9}$, where the ratios are no longer
-meaningful in double precision.
-Maximizing the enhancement ratio thus selects for a poor coherent baseline, not
-for good transport, and it should not be used as a design objective.
+impossible.
+
+\textit{The objective has no finite optimum.}
+Fixing the step profile and varying its height $B$ shows why the optimizer ends
+at the bounds (Table~\ref{tab:steps}): the ratio grows without limit as $B$
+increases, by orders of magnitude per doubling, while the peak yield falls.
+The returned profile is the corner of the search box, not a property of the
+transport problem.
+
+\begin{table}[htbp]
+\caption{\label{tab:steps}Step profiles with height $\pm B$ (the first
+  $\lfloor(N-1)/2\rfloor$ sites at $+B$, the rest at $-B$, the trap at $0$).
+  The ratio is against $\eta(0)$.}
+\begin{ruledtabular}
+\begin{tabular}{ccccc}
+ & \multicolumn{2}{c}{$N=5$} & \multicolumn{2}{c}{$N=7$} \\
+$B$ [$\Delta$] & $\etap$ & $\etap/\eta(0)$ & $\etap$ & $\etap/\eta(0)$ \\
+\hline
+2.5  & 0.546 & 83                 & 0.428 & 765 \\
+5    & 0.452 & $9.0\times10^{3}$  & 0.322 & $8.0\times10^{5}$ \\
+10   & 0.330 & $5.0\times10^{5}$  & 0.204 & $1.6\times10^{8}$ \\
+20   & 0.200 & $2.0\times10^{7}$  & 0.103 & $2.2\times10^{10}$ \\
+\end{tabular}
+\end{ruledtabular}
+\end{table}
+
+\textit{Comparison.}
+The optimized peak yields are below those of simple landscapes that lie inside
+the same search box: $0.65$, $0.32$ and $0.21$ at $N=3$, $7$ and $10$, against
+$0.72$, $0.52$ and $0.42$ for the $\varepsilon_\text{tot}=5\Delta$ funnel and
+$0.77$, $0.62$ and $0.55$ for the flat chain.
+Figure~\ref{fig:optimal}(b) also shows a unit-step funnel,
+$\varepsilon_j=(N-j)\Delta$, used in earlier versions of this work; for
+$N>6$ it extends beyond the box and has a larger total bias, so it is a
+reference curve rather than a competitor.
+
+\textit{Numerical limits.}
+The baseline proxy $\eta(10^{-8}\Delta)$ agrees with $\eta(0)$ to $0.2\%$ for
+the optimized $N=7$ profile but overestimates it by $16\%$ at $N=10$
+($3.06\times10^{-10}$ versus $2.64\times10^{-10}$), and for $N=12$ and $15$
+the baseline approaches the $10^{-12}$ floor.
+Ratios for $N\ge10$ in this section are therefore indicative only.
+Maximizing the enhancement ratio selects for a poor coherent baseline, not for
+good transport, and it should not be used as a design objective.
+Optimizing the absolute flux instead, as Lawrence \textit{et al.}\ did with
+gradient methods~\cite{lawrence2026}, gives nearly flat landscapes for
+short-range tunnelling, consistent with the flat-chain result of
+Sec.~\ref{sec:funnel}.
 
 \begin{figure}[htbp]
 \centering
-\includegraphics[width=\textwidth]{fig4_optimal.png}
+\includegraphics[width=\columnwidth]{fig4_optimal.png}
 \caption{\label{fig:optimal}
   Ratio-optimized site energies.
-  (a)~Optimized profiles for $N=5,7,10$ and a linear funnel with
+  (a)~Optimized profiles for $N=5,7,10$ and the unit-step funnel
   $\varepsilon_j=(N-j)\Delta$ for $N=10$.
-  (b)~Peak yield (filled) and baseline $\eta(10^{-8}\Delta)$ (open) for the
-  optimized profiles and the funnel.
-  Baselines below about $10^{-9}$ are at the limit of numerical precision.}
+  (b)~Peak yield (filled) and coherent yield $\eta(0)$ (open) for the
+  optimized profiles and the unit-step funnel; crosses mark the
+  non-converged optimizer runs ($N=12$, $15$).}
 \end{figure}
 
 % -----------------------------------------------------------------------------
@@ -490,28 +684,51 @@ for good transport, and it should not be used as a design objective.
 For the seven-site FMO Hamiltonian of Adolphs and Renger~\cite{adolphs2006}
 (site energies and couplings in cm$^{-1}$, expressed in units of
 $\Delta_\text{FMO}=87.7\,\text{cm}^{-1}$, the BChl~1--2 coupling), with the
-excitation starting on BChl~1 and the trap on BChl~3, the site coupled to the
-reaction center~\cite{adolphs2006,rebentrost2009}, we find
+excitation starting on BChl~1 and the trap on BChl~3, which faces the
+reaction center (Adolphs and Renger proposed BChls~3 and 4 as the linker
+pigments~\cite{adolphs2006}; see also Ref.~\cite{rebentrost2009}), we find
 \begin{equation*}
   \gps = 1.87\,\Delta_\text{FMO},\qquad
   \etap = 0.46,\qquad
   \eta(0)=0.098,\qquad
   \etap/\eta(0) = 4.7 .
 \end{equation*}
-In time units, $\Delta_\text{FMO}^{-1}=60.5$\,fs.
-For comparison, the high-temperature pure-dephasing rate
-$2\lambda k_BT/\hbar\gamma_c$ for the Drude bath parameters of Ishizaki and
-Fleming~\cite{ishizaki2009} ($\lambda=35\,\text{cm}^{-1}$,
-$\gamma_c^{-1}=50$\,fs, $T=300$\,K) is $1.57\,\Delta_\text{FMO}$, of the same
-order as $\gps$.
-This is consistent with earlier conclusions that FMO operates near the ENAQT
-optimum~\cite{rebentrost2009,caruso2009}, with the caveat that our model uses
-the same trap and loss rates as the chains above rather than fitted
-biological values.
+In time units, $\hbar/\Delta_\text{FMO}=60.5$\,fs, so the default rates
+correspond to $\kappa^{-1}=0.61$\,ps and $\Gamma^{-1}=6.1$\,ps.
+
+\textit{Dephasing rate.}
+For the Drude bath of Ishizaki and Fleming~\cite{ishizaki2009}
+($\lambda=35\,\text{cm}^{-1}$, $\gamma_c^{-1}=50$\,fs, $T=300$\,K), the
+high-temperature pure-dephasing rate of a single site energy is
+$2\lambda k_BT/\hbar\gamma_c=1.57\,\Delta_\text{FMO}$.
+With independent baths on each site a site-to-site coherence decays at twice
+this rate, $4\lambda k_BT/\hbar\gamma_c=3.1\,\Delta_\text{FMO}$, which is the
+quantity that corresponds to $\gp$ in Eq.~(\ref{eq:lindblad}).
+The estimate scales with $\gamma_c^{-1}$; a $100$\,fs relaxation time, also
+attributed to Ref.~\cite{ishizaki2009} in the literature, would double it.
+The optimum $\gps=1.9\,\Delta_\text{FMO}$ is thus of the same order as the
+estimate (a factor $1.7$ below it for $50$\,fs), consistent with earlier
+conclusions that FMO operates near the ENAQT
+optimum~\cite{rebentrost2009,caruso2009} and with the optimal dephasing
+observed in a photonic FMO simulation~\cite{tang2024}.
+
+\textit{Rates.}
+The size of the enhancement depends on the fast loss of the default model.
+With $\kappa^{-1}=1$\,ps and $\Gamma^{-1}=1$\,ns, closer to the biological
+values, the coherent yield is already $0.87$ and the enhancement is $1.14$
+($\etap=0.99$ at $\gps=1.78\,\Delta_\text{FMO}$); with $\kappa^{-1}=0.25$\,ps
+it is $1.04$ ($\gps=1.71\,\Delta_\text{FMO}$).
+The optimal rate is stable, the ratio is not; a small gain at realistic
+parameters is also the conclusion of Ref.~\cite{zerahharush2021}.
+
+\textit{Trap site.}
 An earlier version of this work placed the trap on BChl~7; that choice gives a
-much larger ratio ($32.2$ at $\gps=1.55\,\Delta_\text{FMO}$) because BChl~7 is
-weakly coupled to BChl~1, which illustrates again how strongly the ratio
-depends on the coherent baseline.
+much larger ratio ($32$ against $10^{-3}\Delta_\text{FMO}$, $39$ against
+$\eta(0)$, at $\gps=1.55\,\Delta_\text{FMO}$) with a similar peak yield
+($0.44$).
+The difference lies in the coherent baseline: the long-time average
+population that coherent evolution from BChl~1 places on the trap site, without
+trap or loss, is $0.013$ for BChl~3 but only $0.0024$ for BChl~7.
 
 % -----------------------------------------------------------------------------
 \subsection{\label{sec:2d}Square lattices}
@@ -521,28 +738,35 @@ As a first look beyond one dimension we computed $L\times L$ square lattices
 ($L=2$--$6$) with uniform coupling $\Delta$, a diagonal energy gradient from
 $5\Delta$ at the source corner to $0$ at the trap corner, and the same rates
 (80 log-spaced $\gp$ points in $[10^{-3},10^{2}]\Delta$,
-$\etaz=\eta(10^{-8}\Delta)$).
+$\etar=\eta(10^{-8}\Delta)$).
 Table~\ref{tab:2d} lists the results.
-The enhancement stays modest ($3.1$--$4.7$), the peak yield falls with lattice
-size as in 1D, and $\gps$ decreases with $L$.
-For disordered lattices ($\sigma=2\Delta$, 50 realizations per $L$, 50
-$\gp$ points) $76$--$96\%$ of realizations show $\enh>1.01$.
+The mismatch rule carries over: each step along a shortest path lowers the
+energy by $\dE=5\Delta/[2(L-1)]$, and $\gps$ agrees with this to within $5\%$
+($2.62$ versus $2.50$ at $L=2$, $0.53$ versus $0.50$ at $L=6$).
+The enhancement stays modest ($3.1$--$4.7$) and the peak yield falls with
+lattice size as in 1D.
+For disordered lattices ($\sigma=2\Delta$ on all sites except the trap, which
+stays at $0$; 50 realizations per $L$; 50 $\gp$ points) $76$--$96\%$ of
+realizations have $\enh>1.01$.
+Unlike the 1D criterion, this count does not require an interior maximum.
 Larger ensembles and other geometries are needed before drawing conclusions
 about dimensionality.
 
 \begin{table}[htbp]
 \caption{\label{tab:2d}Square lattices with a diagonal gradient
-  ($\kappa=0.1\Delta$, $\Gamma=0.01\Delta$).
+  ($\kappa=0.1\Delta$, $\Gamma=0.01\Delta$), with the nearest-neighbour
+  mismatch $\dE=5\Delta/[2(L-1)]$.
   The last column is for disordered lattices.}
 \begin{ruledtabular}
-\begin{tabular}{cccccc}
-$L$ & sites & $\gps$ [$\Delta$] & $\etap$ & $\enh$ & disordered, $\enh>1.01$ \\
+\begin{tabular}{ccccccc}
+$L$ & sites & $\gps$ [$\Delta$] & $\dE$ [$\Delta$] & $\etap$ & $\enh$
+  & disordered, $\enh>1.01$ \\
 \hline
-2 &  4 & 2.62 & 0.686 & 3.05 & 76\% \\
-3 &  9 & 1.26 & 0.497 & 3.69 & 92\% \\
-4 & 16 & 0.82 & 0.359 & 4.66 & 96\% \\
-5 & 25 & 0.61 & 0.264 & 4.14 & 88\% \\
-6 & 36 & 0.53 & 0.200 & 3.92 & 90\% \\
+2 &  4 & 2.62 & 2.50 & 0.686 & 3.05 & 76\% \\
+3 &  9 & 1.26 & 1.25 & 0.497 & 3.69 & 92\% \\
+4 & 16 & 0.82 & 0.83 & 0.359 & 4.66 & 96\% \\
+5 & 25 & 0.61 & 0.63 & 0.264 & 4.14 & 88\% \\
+6 & 36 & 0.53 & 0.50 & 0.200 & 3.92 & 90\% \\
 \end{tabular}
 \end{ruledtabular}
 \end{table}
@@ -551,41 +775,70 @@ $L$ & sites & $\gps$ [$\Delta$] & $\etap$ & $\enh$ & disordered, $\enh>1.01$ \\
 \section{\label{sec:discussion}Discussion}
 % =============================================================================
 
-\textit{What scales simply.}
-In ordered funnels the optimal dephasing rate tracks the site-to-site energy
-mismatch, $\gps\propto N^{-1.20}$ at fixed total bias, and the peak yield
-decreases smoothly with length.
-Both are insensitive to how the coherent limit is treated, and both are
-directly comparable with experiment, where the yield and the dephasing rate are
-the measurable quantities~\cite{maier2019}.
+\textit{What is robust.}
+In ordered funnels and square lattices the optimal dephasing rate equals the
+nearest-neighbour energy mismatch, the HSR resonance applied to every bond,
+and this survives two-decade changes of the trap and loss rates.
+The peak yield decreases smoothly with length.
+Both quantities are directly comparable with experiment, where the yield and
+the dephasing rate are the measurable quantities~\cite{maier2019}.
 
-\textit{What does not.}
-The enhancement ratio mixes two very different quantities: how well
+\textit{What dephasing does here.}
+Because pure dephasing is an infinite-temperature bath, it cannot favour
+downhill transfer, and the yield is the same for a funnel and its reverse.
+The flat chain, which has no ENAQT at all, transports better than every funnel,
+and weak random disorder with the funnel's typical step beats the funnel too.
+Within this model ENAQT is best read as dephasing repairing the damage done by
+energy mismatch.
+Whether a real energy landscape gains from dephasing beyond that depends on
+physics the model lacks, chiefly thermal relaxation toward lower sites.
+
+\textit{What is not robust.}
+The enhancement ratio mixes two different quantities: how well
 dephasing-assisted transport works, and how badly coherent transport fails.
-In long or disordered chains the second dominates.
+In long, strongly biased or disordered chains the second dominates.
 As a result the ratio (i) has no unique length dependence, since it can
-plateau or grow by orders of magnitude depending on the reference rate;
-(ii)~is largest for disordered chains whose absolute yield is worse; and
-(iii)~when optimized, selects energy landscapes that block coherent transfer
-rather than ones that transport well.
+plateau or grow by orders of magnitude depending on the reference rate, the
+total bias and the loss rate; (ii)~is largest for disordered chains whose
+absolute yield is worse; (iii)~when optimized, has no finite maximum and
+selects landscapes that block coherent transfer; and (iv)~for FMO falls from
+$4.7$ to $1.14$ when the trap and loss rates are made biological.
 We therefore recommend reporting $\etap$ and $\gps$, with the ratio given
-only together with the exact reference point used for $\etaz$.
+only together with the exact reference point and rates used.
 
 \textit{Relation to earlier work.}
-The resonance condition $\gps\sim$ (energy mismatch) agrees with two-site
-analyses~\cite{rebentrost2009} and with the Bloch-frequency matching found for
-tilted chains~\cite{jacob2024}.
+The mismatch rule follows from the HSR rate~\cite{haken1973,moix2013} and
+was derived for the boundary-driven current of tilted chains, including its
+$1/L$ form at fixed total tilt, by Jacob \textit{et al.}~\cite{jacob2024};
+related length laws exist for disordered and lossy
+chains~\cite{zhang2017,coates2021,skalkin2025}.
+Our contribution is to show that the same rule fixes the optimum of the
+trapping yield to within $2\%$ for funnels of $N=2$--$20$, that it survives
+two-decade changes of the trap and loss rates, and that it carries over to
+square lattices; the exponent $-1.20$ of a power-law fit, which we reported
+in earlier versions, adds nothing beyond it.
 The near-universal presence of ENAQT in disordered chains agrees with
-Refs.~\cite{moix2013,walschaers2013,novo2016,zerahharush2020}; our ensemble
-adds length-resolved statistics with the peak yield and baseline separated.
+Refs.~\cite{moix2013,novo2016,zhang2017,zerahharush2020,coates2021}; our
+ensemble adds length-resolved statistics with the peak yield and baseline
+separated and a direct comparison with ordered and flat chains.
+We found no earlier statement that the trapping yield is invariant under bias
+reversal or that the flat chain beats every funnel under pure dephasing,
+although both follow directly from the infinite-temperature character of the
+bath~\cite{moix2013,jacob2024}.
+The critique of the enhancement ratio builds on earlier remarks that
+enhancement depends on the comparison regime~\cite{kassal2013} and on the
+practice of optimizing absolute flux~\cite{coates2021,lawrence2026}.
 
 \textit{Limitations.}
 The model is Markovian with uniform, uncorrelated pure dephasing; it neglects
-non-Markovian bath memory, which matters for FMO on sub-picosecond
-timescales~\cite{ishizaki2009,moix2011}, and thermal relaxation toward lower
-sites, which a Haken--Strobl--Reineker dephasing term cannot describe.
-The trap and loss rates are fixed rather than fitted to a specific system.
-The disorder and 2D ensembles are moderate in size (100 and 50 realizations).
+non-Markovian bath memory, which matters for FMO on timescales below a
+picosecond~\cite{ishizaki2009,moix2011}, and thermal relaxation toward lower
+sites, which the HSR dephasing term cannot describe and which would break the
+bias symmetry; in this model the word funnel describes the shape of the
+landscape, not a preferred direction.
+Disorder ensembles are moderate in size (100 realizations per $N$ for
+$\sigma=2\Delta$, 50 elsewhere), and the optimizer results rest on a single
+run per $N$.
 Appendix~\ref{app:heom} explains why we do not use the QD3SET-1 spin-boson data
 as a validation of the trapping model.
 
@@ -595,18 +848,22 @@ as a validation of the trapping model.
 
 Within a minimal Lindblad model of a dephased chain with a trap:
 \begin{enumerate}
-\item ENAQT requires an energy mismatch; the optimal dephasing rate tracks
-  it ($\gps\approx\varepsilon$ for two sites, $\gps\propto N^{-1.20}$ for
-  funnels of fixed total bias).
+\item The optimal dephasing rate equals the nearest-neighbour energy mismatch:
+  $\gps\approx\varepsilon$ for two sites, $\gps=\varepsilon_\text{tot}/(N-1)$
+  to within $2\%$ for funnels of $N=2$--$20$ sites, to within $15\%$ across
+  two decades of trap and loss rates, and to within $5\%$ for square lattices.
+\item The yield is invariant under bias reversal, and the flat chain beats
+  every funnel; dephasing recovers yield lost to mismatch.
 \item ENAQT occurs in $97.4\%$ of 1{,}000 disordered chains
   ($\sigma=2\Delta$, $N=2$--$15$).
 \item The enhancement ratio is dominated by the coherent baseline: its
-  apparent saturation in funnels, its large values in disordered chains and
-  the step-like landscapes that maximize it all reflect a vanishing
-  baseline, not better transport.
+  plateau in funnels, its large values in disordered chains and the unbounded
+  values reached by optimizing it all reflect a vanishing baseline, not better
+  transport.
 \item For FMO with the trap on BChl~3 the optimal dephasing rate,
   $1.9\,\Delta_\text{FMO}$, is of the order of a standard estimate of the
-  protein dephasing rate.
+  protein dephasing rate, and is stable when the rates are made
+  biological, while the enhancement falls to $1.14$.
 \end{enumerate}
 
 \begin{acknowledgments}
@@ -638,8 +895,8 @@ Eq.~(\ref{eq:lindblad}), for three reasons.
 First, there is no trap: $\rho_{22}$ at a fixed time measures relaxation toward
 thermal equilibrium, not a trapping yield.
 Second, the binned curve pools trajectories with different temperatures and
-reorganization energies; within single-temperature slices we find no interior
-maximum, so the pooled shape reflects how the parameter grid maps onto $\gp$.
+reorganization energies, so its shape partly reflects how the parameter grid
+maps onto $\gp$.
 Third, the HEOM bath includes thermal relaxation and memory that the pure
 dephasing model lacks.
 A quantitative test of the trapping model against exact dynamics would need
@@ -648,14 +905,21 @@ work.
 
 \section{\label{app:repro}Reproducibility}
 
-\texttt{scripts/paper\_numbers.py} recomputes every number in the text and
-tables (disorder seeds $0$--$99$ with \texttt{numpy.random.default\_rng};
-runtime about 40\,s on one core) and writes \texttt{paper\_numbers.json};
-\texttt{scripts/make\_paper\_figures.py} draws Figs.~\ref{fig:two_site}--\ref{fig:optimal}
-from that file.
-The optimizer output (Sec.~\ref{sec:optimal}) and the square-lattice results
-(Sec.~\ref{sec:2d}) come from \texttt{enaqt\_optimal\_disorder.py} and
-\texttt{enaqt\_2d\_lattice.py} in the same repository.
+\texttt{scripts/paper\_numbers.py} recomputes every number in
+Secs.~\ref{sec:two_site}--\ref{sec:disorder} and \ref{sec:fmo}, the step
+profiles and baselines of Sec.~\ref{sec:optimal}, and the mismatch comparison
+of Sec.~\ref{sec:2d} (disorder seeds $0$--$99$ with
+\texttt{numpy.random.default\_rng}, bootstrap seed 0; about 80\,s on one
+core) and writes \texttt{paper\_numbers.json};
+\texttt{scripts/make\_paper\_figures.py} draws
+Figs.~\ref{fig:two_site}--\ref{fig:optimal} from that file.
+The optimized site energies of Sec.~\ref{sec:optimal} come from
+\texttt{enaqt\_optimal\_disorder.py}, the square-lattice runs of
+Sec.~\ref{sec:2d} from \texttt{enaqt\_2d\_lattice.py}, and the QD3SET-1
+analysis of Appendix~\ref{app:heom} from \texttt{enaqt\_sb\_analysis.py}; these
+scripts take longer and their outputs are stored as JSON in the repository.
+The test suite (\texttt{tests/}) pins the key numbers and checks the mismatch
+rule, the bias symmetry and the flat-chain results.
 
 % =============================================================================
 \begin{thebibliography}{99}
@@ -687,6 +951,24 @@ P.~W. Anderson,
 Absence of diffusion in certain random lattices,
 Phys.\ Rev.\ \textbf{109}, 1492 (1958).
 
+\bibitem{haken1972}
+H.~Haken and P.~Reineker,
+The coupled coherent and incoherent motion of excitons and its influence on
+the line shape of optical absorption,
+Z.~Phys.\ \textbf{249}, 253 (1972).
+
+\bibitem{haken1973}
+H.~Haken and G.~Strobl,
+An exactly solvable model for coherent and incoherent exciton motion,
+Z.~Phys.\ \textbf{262}, 135 (1973).
+
+\bibitem{moix2013}
+J.~M. Moix, M.~Khasin, and J.~Cao,
+Coherent quantum transport in disordered systems: I. The influence of
+dephasing on the transport properties and absorption spectra on
+one-dimensional systems,
+New J.\ Phys.\ \textbf{15}, 085010 (2013).
+
 \bibitem{wu2010}
 J.~Wu, F.~Liu, Y.~Shen, J.~Cao, and R.~J. Silbey,
 Efficient energy transfer in light-harvesting systems, I: optimal temperature,
@@ -709,34 +991,15 @@ M.~\v{Z}nidari\v{c} and M.~Horvat,
 Transport in a disordered tight-binding chain with dephasing,
 Eur.\ Phys.\ J.~B \textbf{86}, 67 (2013).
 
-\bibitem{moix2013}
-J.~M. Moix, M.~Khasin, and J.~Cao,
-Coherent quantum transport in disordered systems: I. The influence of
-dephasing on the transport properties and absorption spectra on
-one-dimensional systems,
-New J.\ Phys.\ \textbf{15}, 085010 (2013).
-
-\bibitem{walschaers2013}
-M.~Walschaers, J.~Fernandez-de-Cossio Diaz, R.~Mulet, and A.~Buchleitner,
-Optimally designed quantum transport across disordered networks,
-Phys.\ Rev.\ Lett.\ \textbf{111}, 180601 (2013).
-
 \bibitem{novo2016}
 L.~Novo, M.~Mohseni, and Y.~Omar,
 Disorder-assisted quantum transport in suboptimal decoherence regimes,
 Sci.\ Rep.\ \textbf{6}, 18142 (2016).
 
-\bibitem{zerahharush2018}
-E.~Zerah-Harush and Y.~Dubi,
-Universal origin for environment-assisted quantum transport in exciton
-transfer networks,
-J.~Phys.\ Chem.\ Lett.\ \textbf{9}, 1689 (2018).
-
-\bibitem{maier2019}
-C.~Maier, T.~Brydges, P.~Jurcevic, N.~Trautmann, C.~Hempel, B.~P. Lanyon,
-P.~Hauke, R.~Blatt, and C.~F. Roos,
-Environment-assisted quantum transport in a 10-qubit network,
-Phys.\ Rev.\ Lett.\ \textbf{122}, 050501 (2019).
+\bibitem{zhang2017}
+Y.~Zhang, G.~L. Celardo, F.~Borgonovi, and L.~Kaplan,
+Optimal dephasing for ballistic energy transfer in disordered linear chains,
+Phys.\ Rev.~E \textbf{96}, 052103 (2017).
 
 \bibitem{zerahharush2020}
 E.~Zerah-Harush and Y.~Dubi,
@@ -744,11 +1007,27 @@ Effects of disorder and interactions in environment assisted quantum
 transport,
 Phys.\ Rev.\ Research \textbf{2}, 023294 (2020).
 
+\bibitem{coates2021}
+A.~R. Coates, B.~W. Lovett, and E.~M. Gauger,
+Localisation determines the optimal noise rate for quantum transport,
+New J.\ Phys.\ \textbf{23}, 123014 (2021).
+
+\bibitem{zerahharush2018}
+E.~Zerah-Harush and Y.~Dubi,
+Universal origin for environment-assisted quantum transport in exciton
+transfer networks,
+J.~Phys.\ Chem.\ Lett.\ \textbf{9}, 1689 (2018).
+
 \bibitem{coates2023}
 A.~R. Coates, B.~W. Lovett, and E.~M. Gauger,
 From Goldilocks to twin peaks: multiple optimal regimes for quantum transport
 in disordered networks,
 Phys.\ Chem.\ Chem.\ Phys.\ \textbf{25}, 10103 (2023).
+
+\bibitem{burkhardt2013}
+S.~Burkhardt, M.~Kraft, R.~Mannella, and S.~Wimberger,
+Noise-assisted transport in the Wannier-Stark system,
+New J.\ Phys.\ \textbf{15}, 045008 (2013).
 
 \bibitem{jacob2024}
 S.~L. Jacob, L.~P. Bettmann, A.~M. Lacerda, K.~Zawadzki, S.~R. Clark,
@@ -756,11 +1035,99 @@ J.~Goold, and J.~J. Mendoza-Arenas,
 Dephasing-assisted transport in a tight-binding chain with a linear potential,
 Front.\ Phys.\ \textbf{12}, 1474018 (2024).
 
+\bibitem{skalkin2025}
+A.~Skalkin, R.~Unanyan, and M.~Fleischhauer,
+Dephasing enhanced transport of spin excitations in a two dimensional lossy
+lattice,
+arXiv:2502.10854 (2025).
+
 \bibitem{yeler2026}
 H.~Yeler and \"{O}.~\c{C}ak{\i}r,
 Environment-assisted transport in a strongly correlated boundary-driven
 Fermi-Hubbard chain,
 arXiv:2609.05137 (2026).
+
+\bibitem{viciani2015}
+S.~Viciani, M.~Lima, M.~Bellini, and F.~Caruso,
+Observation of noise-assisted transport in an all-optical cavity-based
+network,
+Phys.\ Rev.\ Lett.\ \textbf{115}, 083601 (2015).
+
+\bibitem{biggerstaff2016}
+D.~N. Biggerstaff, R.~Heilmann, A.~A. Zecevik, M.~Gr\"{a}fe, M.~A. Broome,
+A.~Fedrizzi, S.~Nolte, A.~Szameit, A.~G. White, and I.~Kassal,
+Enhancing coherent transport in a photonic network using controllable
+decoherence,
+Nat.\ Commun.\ \textbf{7}, 11282 (2016).
+
+\bibitem{potocnik2018}
+A.~Poto\v{c}nik, A.~Bargerbos, F.~A.~Y.~N. Schr\"{o}der, S.~A. Khan,
+M.~C. Collodo, S.~Gasparinetti, Y.~Salath\'{e}, C.~Creatore, C.~Eichler,
+H.~E. T\"{u}reci, A.~W. Chin, and A.~Wallraff,
+Studying light-harvesting models with superconducting circuits,
+Nat.\ Commun.\ \textbf{9}, 904 (2018).
+
+\bibitem{maier2019}
+C.~Maier, T.~Brydges, P.~Jurcevic, N.~Trautmann, C.~Hempel, B.~P. Lanyon,
+P.~Hauke, R.~Blatt, and C.~F. Roos,
+Environment-assisted quantum transport in a 10-qubit network,
+Phys.\ Rev.\ Lett.\ \textbf{122}, 050501 (2019).
+
+\bibitem{tang2024}
+H.~Tang \textit{et al.},
+Simulating photosynthetic energy transport on a photonic network,
+npj Quantum Inf.\ \textbf{10}, 29 (2024).
+
+\bibitem{lawrence2026}
+M.~Lawrence, M.~Pocrnic, E.~Fung, J.~Carrasquilla, E.~M. Gauger, and D.~Segal,
+Discovery of energy landscapes toward optimized quantum transport:
+Environmental effects and long-range tunneling,
+Phys.\ Rev.\ Research \textbf{8}, 013163 (2026).
+
+\bibitem{lawrence2026b}
+M.~Lawrence, E.~Wang, and D.~Segal,
+Design principles for enhanced quantum transport with site-dependent noise,
+Phys.\ Rev.~B \textbf{114}, 034210 (2026).
+
+\bibitem{gassab2026}
+L.~Gassab, B.~Adams, Y.~H. Goolam Hossen, A.~Hassasfar, O.~Pusuluk,
+N.~J. Murugan, I.~K. Kominis, \"{O}.~E. M\"{u}stecapl{\i}o\u{g}lu,
+F.~Petruccione, and T.~J.~A. Craddock,
+Quantum in biology, quantum for biology, and biology for quantum: mapping the
+evidence and the road ahead,
+arXiv:2605.00205 (2026).
+
+\bibitem{kassal2013}
+I.~Kassal, J.~Yuen-Zhou, and S.~Rahimi-Keshari,
+Does coherence enhance transport in photosynthesis?,
+J.~Phys.\ Chem.\ Lett.\ \textbf{4}, 362 (2013).
+
+\bibitem{dwiputra2020}
+D.~Dwiputra and F.~P. Zen,
+Environment-assisted quantum transport and mobility edges,
+arXiv:2012.09337 (2020).
+
+\bibitem{zerahharush2021}
+E.~Zerah~Harush and Y.~Dubi,
+Do photosynthetic complexes use quantum coherence to increase their
+efficiency? Probably not,
+Sci.\ Adv.\ \textbf{7}, eabc4631 (2021).
+
+\bibitem{mendozaarenas2024}
+J.~J. Mendoza-Arenas and S.~R. Clark,
+Giant rectification in strongly interacting driven tilted systems,
+PRX Quantum \textbf{5}, 010341 (2024).
+
+\bibitem{wannier1960}
+G.~H. Wannier,
+Wave functions and effective Hamiltonian for Bloch electrons in an electric
+field,
+Phys.\ Rev.\ \textbf{117}, 432 (1960).
+
+\bibitem{kappus1981}
+M.~Kappus and F.~Wegner,
+Anomaly in the band centre of the one-dimensional Anderson model,
+Z.~Phys.~B \textbf{45}, 15 (1981).
 
 \bibitem{adolphs2006}
 J.~Adolphs and T.~Renger,
