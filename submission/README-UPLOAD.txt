@@ -7,7 +7,7 @@ WHAT IS HERE
                                  bibtex run is needed.
   main.pdf                       The compiled paper (pdfLaTeX, revtex4-2).
                                  Read this first.
-  main.tex                       Same manuscript as in the tarball.
+  main.tex (repo root)           Same manuscript as in the tarball.
   abstract.txt                   Plain-text abstract for the arXiv form
                                  (1,871 characters; the limit is 1,920).
 
